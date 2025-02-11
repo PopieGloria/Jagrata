@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "265788001372",
+    "project_id": "jagrata-420",
+    "storage_bucket": "jagrata-420.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:265788001372:android:538c57cae733908925aa99",
+        "android_client_info": {
+          "package_name": "com.nav.jagrata"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAEnVbjycJeWKFpqNRLlQ4hUzFy7j4UmN0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
