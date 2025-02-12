@@ -6,7 +6,6 @@ Corruption remains a major challenge in governance, affecting transparency and p
 
 - **Secure Digital Reporting:** Users can submit evidence of corruption with end-to-end encryption.
 - **AI-Powered Case Prioritization:** AI models classify case severity to ensure urgent matters receive immediate attention.
-- **Multi-Language Support:** Automatic translation enables reporting in different languages.
 - **Anonymous Reporting:** Protects whistleblowers' identities while ensuring their voices are heard.
 - **Data Integrity & Confidentiality:** Robust security measures prevent tampering and unauthorized access.
 - **Automated Routing:** Cases are categorized and sent to the relevant authorities for prompt action.
@@ -17,7 +16,7 @@ Corruption remains a major challenge in governance, affecting transparency and p
 
 - **Frontend:** Flutter (Dart)
 - **Backend:** Firebase Firestore, Firebase Authentication
-- **AI Integration:** Python, LLaMA/Mistral LLM (for classification & translation)
+- **AI Integration:** Gemini 1.5 Flash
 - **Cloud Storage:** Firebase Storage (for secure document handling)
 - **Security:** Firebase Authentication, AES Encryption
 
@@ -32,13 +31,7 @@ Corruption remains a major challenge in governance, affecting transparency and p
    ```sh
    flutter pub get
    ```
-3. Set up environment variables (create a `.env` file):
-   ```env
-   FIREBASE_API_KEY=your_firebase_api_key
-   FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
-   FIREBASE_PROJECT_ID=your_firebase_project_id
-   ```
-4. Run the app:
+3. Run the app:
    ```sh
    flutter run
    ```
@@ -53,18 +46,7 @@ Corruption remains a major challenge in governance, affecting transparency and p
 
 Contributions are welcome! Feel free to open issues and submit pull requests.
 
-## Presentation
-
-The project presentation should contain the following sections:
-- **Introduction**
-- **Objective**
-- **Timeline**
-- **Features & Implementation**
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contact
 
-For inquiries, reach out via email: `your.email@example.com` or connect on [LinkedIn](https://linkedin.com/in/your-profile).
+
