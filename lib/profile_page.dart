@@ -136,254 +136,269 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Profile'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: _isLoading
-            ? Center(child: CircularProgressIndicator()) // Show loading indicator
-            : _isProfileComplete
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Text(
-                          _userName ?? '',
-                          style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+    return WillPopScope(
+      onWillPop: () async {
+        if (!_isProfileComplete) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please complete your profile before proceeding.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          return false;
+        }
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_isProfileComplete ? 'Profile' : 'Complete Your Profile'),
+          automaticallyImplyLeading: _isProfileComplete,
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: _isLoading
+              ? Center(child: CircularProgressIndicator()) // Show loading indicator
+              : _isProfileComplete
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Text(
+                            _userName ?? '',
+                            style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 9.0),
-                      Center(child: Text(_userEmail ?? '')),
-                      const SizedBox(height: 9.0),
-                      Center(child: Text(_userPhone ?? '')),
-                      const Spacer(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () async {
-                              await FirebaseAuth.instance.signOut();
-                              Navigator.of(context).pushReplacement(
-                                MaterialPageRoute(builder: (context) => WelcomePage()), // Redirect to WelcomePage
-                              );
-                            },
-                            child: const Text('Log Out'),
-                          ),
-                          const SizedBox(width: 20), // Space between buttons
-                          ElevatedButton(
-                            onPressed: () async {
-                              // Confirm deletion
-                              bool? confirm = await showDialog(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('Delete Account'),
-                                  content: const Text('Are you sure you want to delete your account? This action cannot be undone.'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, false),
-                                      child: const Text('Cancel'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, true),
-                                      child: const Text('Delete'),
-                                    ),
-                                  ],
-                                ),
-                              );
-
-                              if (confirm == true) {
-                                await _deleteAccount();
-                              }
-                            },
-                            child: const Text('Delete Account'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red, // Use backgroundColor instead of primary
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  )
-                : Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: <Widget>[
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Name',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your name';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16.0),
-                        TextFormField(
-                          controller: _phoneController,
-                          decoration: const InputDecoration(
-                            labelText: 'Phone Number',
-                            border: OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.phone,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your phone number';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16.0),
+                        const SizedBox(height: 9.0),
+                        Center(child: Text(_userEmail ?? '')),
+                        const SizedBox(height: 9.0),
+                        Center(child: Text(_userPhone ?? '')),
+                        const Spacer(),
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Expanded(
-                              child: TextFormField(
-                                controller: _govtIdController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Govt. ID Number',
-                                  border: OutlineInputBorder(),
-                                ),
-                                keyboardType: TextInputType.number,
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter your Govt. ID number';
-                                  }
-                                  return null;
-                                },
-                              ),
+                            ElevatedButton(
+                              onPressed: () async {
+                                await FirebaseAuth.instance.signOut();
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(builder: (context) => WelcomePage()), // Redirect to WelcomePage
+                                );
+                              },
+                              child: const Text('Log Out'),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.info_outline),
-                              onPressed: () {
-                                showDialog(
+                            const SizedBox(width: 20), // Space between buttons
+                            ElevatedButton(
+                              onPressed: () async {
+                                // Confirm deletion
+                                bool? confirm = await showDialog(
                                   context: context,
                                   builder: (context) => AlertDialog(
-                                    content: const Text('Aadhar, Driving License, Passport, PAN Number'),
+                                    title: const Text('Delete Account'),
+                                    content: const Text('Are you sure you want to delete your account? This action cannot be undone.'),
                                     actions: [
                                       TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: const Text('OK'),
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        child: const Text('Delete'),
                                       ),
                                     ],
                                   ),
                                 );
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16.0),
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: _isIndian,
-                              onChanged: (bool? value) {
-                                setState(() {
-                                  _isIndian = value!;
-                                  if (_isIndian) {
-                                    _selectedCountry = 'India'; // Automatically set to India if checked
-                                  } else {
-                                    _selectedCountry = null; // Reset if unchecked
-                                  }
-                                });
-                              },
-                            ),
-                            const Text('Indian'),
-                          ],
-                        ),
-                        const SizedBox(height: 16.0),
-                        DropdownButtonFormField<String>(
-                          value: _isIndian ? 'India' : _selectedCountry,
-                          hint: const Text('Select Country'),
-                          items: countries.map((String country) {
-                            return DropdownMenuItem<String>(
-                              value: country,
-                              child: Text(country),
-                            );
-                          }).toList(),
-                          onChanged: _isIndian
-                              ? null // Disable dropdown if marked as Indian
-                              : (String? newValue) {
-                                  setState(() {
-                                    _selectedCountry = newValue;
-                                  });
-                                },
-                          validator: (value) {
-                            if (!_isIndian && (value == null || value.isEmpty)) {
-                              return 'Please select your country';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16.0),
-                        DropdownButtonFormField<String>(
-                          value: _selectedGender,
-                          hint: const Text('Select Gender'),
-                          items: genders.map((String gender) {
-                            return DropdownMenuItem<String>(
-                              value: gender,
-                              child: Text(gender),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedGender = newValue;
-                            });
-                          },
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please select your gender';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: () async {
-                            if (_formKey.currentState!.validate()) {
-                              setState(() {
-                                _isLoading = true;
-                              });
-                              try {
-                                // Save the data to Firestore
-                                User? user = FirebaseAuth.instance.currentUser;
-                                if (user != null) {
-                                  await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-                                    'name': _nameController.text,
-                                    'phone': _phoneController.text,
-                                    'govtId': _govtIdController.text,
-                                    'country': _selectedCountry,
-                                    'gender': _selectedGender,
-                                    'isIndian': _isIndian,
-                                    'email': user.email, // Include email in the database
-                                  });
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Profile updated successfully!')),
-                                  );
-                                  widget.onProfileUpdated(); // Notify HomePage of profile update
-                                  _fetchUserProfile(); // Refresh profile data
+
+                                if (confirm == true) {
+                                  await _deleteAccount();
                                 }
-                              } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Error saving profile: ${e.toString()}')),
-                                );
-                              } finally {
-                                setState(() {
-                                  _isLoading = false;
-                                });
-                              }
-                            }
-                          },
-                          child: const Text('Save Profile'),
+                              },
+                              child: const Text('Delete Account'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red, // Use backgroundColor instead of primary
+                              ),
+                            ),
+                          ],
                         ),
                       ],
+                    )
+                  : Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: <Widget>[
+                          TextFormField(
+                            controller: _nameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Name',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your name';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16.0),
+                          TextFormField(
+                            controller: _phoneController,
+                            decoration: const InputDecoration(
+                              labelText: 'Phone Number',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.phone,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your phone number';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16.0),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _govtIdController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Govt. ID Number',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  keyboardType: TextInputType.number,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please enter your Govt. ID number';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.info_outline),
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      content: const Text('Aadhar, Driving License, Passport, PAN Number'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context),
+                                          child: const Text('OK'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16.0),
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _isIndian,
+                                onChanged: (bool? value) {
+                                  setState(() {
+                                    _isIndian = value!;
+                                    if (_isIndian) {
+                                      _selectedCountry = 'India'; // Automatically set to India if checked
+                                    } else {
+                                      _selectedCountry = null; // Reset if unchecked
+                                    }
+                                  });
+                                },
+                              ),
+                              const Text('Indian'),
+                            ],
+                          ),
+                          const SizedBox(height: 16.0),
+                          DropdownButtonFormField<String>(
+                            value: _isIndian ? 'India' : _selectedCountry,
+                            hint: const Text('Select Country'),
+                            items: countries.map((String country) {
+                              return DropdownMenuItem<String>(
+                                value: country,
+                                child: Text(country),
+                              );
+                            }).toList(),
+                            onChanged: _isIndian
+                                ? null // Disable dropdown if marked as Indian
+                                : (String? newValue) {
+                                    setState(() {
+                                      _selectedCountry = newValue;
+                                    });
+                                  },
+                            validator: (value) {
+                              if (!_isIndian && (value == null || value.isEmpty)) {
+                                return 'Please select your country';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16.0),
+                          DropdownButtonFormField<String>(
+                            value: _selectedGender,
+                            hint: const Text('Select Gender'),
+                            items: genders.map((String gender) {
+                              return DropdownMenuItem<String>(
+                                value: gender,
+                                child: Text(gender),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                _selectedGender = newValue;
+                              });
+                            },
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please select your gender';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: () async {
+                              if (_formKey.currentState!.validate()) {
+                                setState(() {
+                                  _isLoading = true;
+                                });
+                                try {
+                                  // Save the data to Firestore
+                                  User? user = FirebaseAuth.instance.currentUser;
+                                  if (user != null) {
+                                    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+                                      'name': _nameController.text,
+                                      'phone': _phoneController.text,
+                                      'govtId': _govtIdController.text,
+                                      'country': _selectedCountry,
+                                      'gender': _selectedGender,
+                                      'isIndian': _isIndian,
+                                      'email': user.email, // Include email in the database
+                                    });
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Profile updated successfully!')),
+                                    );
+                                    widget.onProfileUpdated(); // Notify HomePage of profile update
+                                    _fetchUserProfile(); // Refresh profile data
+                                  }
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error saving profile: ${e.toString()}')),
+                                  );
+                                } finally {
+                                  setState(() {
+                                    _isLoading = false;
+                                  });
+                                }
+                              }
+                            },
+                            child: const Text('Save Profile'),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+        ),
       ),
     );
   }

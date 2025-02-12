@@ -6,19 +6,24 @@ import 'welcome_page.dart';
 import 'add_incident_page.dart';
 import 'profile_page.dart';
 import 'package:firebase_vertexai/firebase_vertexai.dart';
-
-
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  
+  try {
+    // Check if Firebase is already initialized
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+  } catch (e) {
+    print('Firebase initialization error: $e');
+  }
+  
   runApp(MyApp());
-
-
-
-
 }
-
 
 class MyApp extends StatelessWidget {
   @override
@@ -41,48 +46,65 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.active) {
           User? user = snapshot.data;
+          
           if (user == null) {
-            return WelcomePage(); // Navigate to welcome page if not signed in
-          } else {
-            return FutureBuilder<bool>(
-              future: _isProfileComplete(user),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.done) {
-                  if (snapshot.data == true) {
-                    return MainScreen(); // Navigate to main screen if profile is complete
-                  } else {
-                    return ProfilePage(onProfileUpdated: () {
+            return WelcomePage();
+          }
+          
+          // Check profile completion status
+          return FutureBuilder<DocumentSnapshot>(
+            future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
+            builder: (context, profileSnapshot) {
+              if (profileSnapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (profileSnapshot.hasData && profileSnapshot.data!.exists) {
+                final userData = profileSnapshot.data!.data() as Map<String, dynamic>;
+                
+                // Check if all required profile fields are completed
+                bool isProfileComplete = userData['name'] != null && 
+                                       userData['phone'] != null && 
+                                       userData['govtId'] != null &&
+                                       userData['country'] != null && 
+                                       userData['gender'] != null;
+
+                if (!isProfileComplete) {
+                  // Force user to complete profile
+                  return ProfilePage(
+                    onProfileUpdated: () {
+                      // This callback will be called after successful profile completion
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(builder: (context) => MainScreen()),
                       );
-                    });
-                  }
-                } else {
-                  return Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
+                    },
                   );
                 }
-              },
-            );
-          }
-        } else {
-          return Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+                
+                // Profile is complete, show main screen
+                return MainScreen();
+              } else {
+                // New user, needs to complete profile
+                return ProfilePage(
+                  onProfileUpdated: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => MainScreen()),
+                    );
+                  },
+                );
+              }
+            },
           );
         }
+        
+        // Show loading indicator while checking auth state
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        );
       },
     );
-  }
-
-  Future<bool> _isProfileComplete(User user) async {
-    final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-    if (userDoc.exists) {
-      final data = userDoc.data() as Map<String, dynamic>;
-      return data['name'] != null && data['phone'] != null && data['govtId'] != null &&
-             data['country'] != null && data['gender'] != null;
-    }
-    return false;
   }
 }
 
@@ -99,6 +121,51 @@ class _MainScreenState extends State<MainScreen> {
     AddIncidentPage(),
     ProfilePage(onProfileUpdated: () {}),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkProfileCompletion();
+  }
+
+  Future<void> _checkProfileCompletion() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      
+      if (!userDoc.exists) {
+        _redirectToProfile();
+        return;
+      }
+
+      final userData = userDoc.data() as Map<String, dynamic>;
+      bool isProfileComplete = userData['name'] != null && 
+                             userData['phone'] != null && 
+                             userData['govtId'] != null &&
+                             userData['country'] != null && 
+                             userData['gender'] != null;
+
+      if (!isProfileComplete) {
+        _redirectToProfile();
+      }
+    }
+  }
+
+  void _redirectToProfile() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfilePage(
+          onProfileUpdated: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => MainScreen()),
+            );
+          },
+        ),
+      ),
+    );
+  }
 
   void _onItemTapped(int index) {
     setState(() {

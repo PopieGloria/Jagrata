@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:firebase_vertexai/firebase_vertexai.dart';
 
 
 class AddIncidentPage extends StatefulWidget {
@@ -34,6 +37,16 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
     'Nepotism',
     'Other',
   ];
+
+  late final GenerativeModel _model;
+  bool _isGeneratingSummary = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize the Gemini model
+    _model = FirebaseVertexAI.instance.generativeModel(model: 'gemini-1.0-pro');
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -132,10 +145,202 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
     );
   }
 
+  Future<void> _generateSummary() async {
+    if (_descriptionController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please provide a description first')),
+      );
+      return;
+    }
 
+    setState(() {
+      _isGeneratingSummary = true;
+    });
 
+    try {
+      final prompt = [
+        Content.text(
+          '''Generate a formal and structured summary of this incident report. Use markdown formatting:
+          - Use # for main headings
+          - Use ** for bold important points
+          - Use proper paragraphs with line breaks
 
+          Include the following sections:
+          1. # Introduction
+             - Type of corruption and when it occurred
+          2. # Detailed Analysis
+             - Comprehensive explanation with **key points highlighted**
+          3. # Impact Assessment
+             - Severity analysis and potential consequences
+          4. # Contextual Information
+             - Relevant details about department/officials
 
+          Incident Description:
+          ${_descriptionController.text}'''
+        )
+      ];
+
+      final response = await _model.generateContent(prompt);
+      
+      setState(() {
+        _aiSummaryController.text = response.text ?? 'Unable to generate summary';
+      });
+    } catch (e) {
+      print('Error generating summary: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error generating AI summary: ${e.toString()}')),
+      );
+    } finally {
+      setState(() {
+        _isGeneratingSummary = false;
+      });
+    }
+  }
+
+  Widget _buildAISummaryField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade400),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(4),
+                    topRight: Radius.circular(4),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      'AI Structured Analysis',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    if (_isGeneratingSummary)
+                      Padding(
+                        padding: EdgeInsets.only(left: 12),
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5B86E5)),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Container(
+                height: 300,
+                padding: EdgeInsets.all(16),
+                child: TextField(
+                  controller: _aiSummaryController,
+                  maxLines: null,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: 'AI summary will appear here',
+                    hintStyle: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  style: TextStyle(
+                    fontSize: 15,
+                    height: 1.5,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(top: 4, left: 8),
+          child: Text(
+            'Supports markdown formatting',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGenerateButton() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF7EB6FF), // Light blue
+            Color(0xFF5B86E5), // Medium blue
+            Color(0xFF36D1DC), // Cyan
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: _isGeneratingSummary ? null : _generateSummary,
+        icon: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(
+              Icons.hexagon_outlined,
+              size: 28,
+              color: Colors.white,
+            ),
+            Icon(
+              Icons.auto_awesome,
+              size: 16,
+              color: Colors.white,
+            ),
+          ],
+        ),
+        label: Text(
+          'Generate Summary using AI',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          shadowColor: Colors.transparent,
+          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -300,25 +505,25 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
                 decoration: InputDecoration(
                   labelText: 'Description of Incident',
                   border: OutlineInputBorder(),
+                  helperText: 'Provide detailed description of the incident',
                 ),
                 maxLines: 5,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please provide a description of the incident';
+                    return 'Please describe the incident';
                   }
                   return null;
                 },
               ),
-              const SizedBox(height: 16.0),
-              TextFormField(
-                controller: _aiSummaryController,
-                decoration: InputDecoration(
-                  labelText: 'AI Summarized',
-                  border: OutlineInputBorder(),
+              const SizedBox(height: 12.0),
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: _buildGenerateButton(),
                 ),
-                maxLines: 5,
-                readOnly: true,
               ),
+              const SizedBox(height: 16.0),
+              _buildAISummaryField(),
               const SizedBox(height: 16.0),
               TextFormField(
                 controller: _severityController,
@@ -373,6 +578,13 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
         ),
       ),
     );
+  }
 
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    _aiSummaryController.dispose();
+    // ... (dispose other controllers)
+    super.dispose();
   }
 } 
