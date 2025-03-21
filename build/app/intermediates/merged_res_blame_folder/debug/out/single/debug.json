@@ -1,26 +1,26 @@
 [
     {
-        "merged": "com.nav.jagrata.app-merged_res-40:/mipmap-xxxhdpi_ic_launcher.png.flat",
-        "source": "com.nav.jagrata.app-main-34:/mipmap-xxxhdpi/ic_launcher.png"
+        "merged": "com.nav.jagrata.app-merged_res-55:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "com.nav.jagrata.app-main-49:/mipmap-mdpi/ic_launcher.png"
     },
     {
-        "merged": "com.nav.jagrata.app-merged_res-40:/mipmap-xhdpi_ic_launcher.png.flat",
-        "source": "com.nav.jagrata.app-main-34:/mipmap-xhdpi/ic_launcher.png"
+        "merged": "com.nav.jagrata.app-merged_res-55:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.nav.jagrata.app-main-49:/mipmap-hdpi/ic_launcher.png"
     },
     {
-        "merged": "com.nav.jagrata.app-merged_res-40:/mipmap-xxhdpi_ic_launcher.png.flat",
-        "source": "com.nav.jagrata.app-main-34:/mipmap-xxhdpi/ic_launcher.png"
+        "merged": "com.nav.jagrata.app-merged_res-55:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "com.nav.jagrata.app-main-49:/mipmap-xhdpi/ic_launcher.png"
     },
     {
-        "merged": "com.nav.jagrata.app-merged_res-40:/drawable-v21_launch_background.xml.flat",
-        "source": "com.nav.jagrata.app-main-34:/drawable-v21/launch_background.xml"
+        "merged": "com.nav.jagrata.app-merged_res-55:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "com.nav.jagrata.app-main-49:/mipmap-xxhdpi/ic_launcher.png"
     },
     {
-        "merged": "com.nav.jagrata.app-merged_res-40:/mipmap-hdpi_ic_launcher.png.flat",
-        "source": "com.nav.jagrata.app-main-34:/mipmap-hdpi/ic_launcher.png"
+        "merged": "com.nav.jagrata.app-merged_res-55:/drawable-v21_launch_background.xml.flat",
+        "source": "com.nav.jagrata.app-main-49:/drawable-v21/launch_background.xml"
     },
     {
-        "merged": "com.nav.jagrata.app-merged_res-40:/mipmap-mdpi_ic_launcher.png.flat",
-        "source": "com.nav.jagrata.app-main-34:/mipmap-mdpi/ic_launcher.png"
+        "merged": "com.nav.jagrata.app-merged_res-55:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.nav.jagrata.app-main-49:/mipmap-xxxhdpi/ic_launcher.png"
     }
 ]

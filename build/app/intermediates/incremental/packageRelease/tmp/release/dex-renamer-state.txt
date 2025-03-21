@@ -1,0 +1,7 @@
+#Thu Mar 20 09:17:43 IST 2025
+base.0=/Users/arfan/Documents/jagrata/build/app/intermediates/dex/release/minifyReleaseWithR8/classes.dex
+base.1=/Users/arfan/Documents/jagrata/build/app/intermediates/dex/release/minifyReleaseWithR8/classes2.dex
+path.0=classes.dex
+path.1=classes2.dex
+renamed.0=classes.dex
+renamed.1=classes2.dex

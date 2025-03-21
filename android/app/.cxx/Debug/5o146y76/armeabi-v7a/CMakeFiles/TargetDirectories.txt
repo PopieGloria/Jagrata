@@ -1,0 +1,2 @@
+/Users/arfan/Documents/jagrata/android/app/.cxx/Debug/5o146y76/armeabi-v7a/CMakeFiles/edit_cache.dir
+/Users/arfan/Documents/jagrata/android/app/.cxx/Debug/5o146y76/armeabi-v7a/CMakeFiles/rebuild_cache.dir

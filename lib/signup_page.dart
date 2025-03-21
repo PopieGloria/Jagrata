@@ -383,7 +383,7 @@ class _SignupPageState extends State<SignupPage> {
           
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Email verified successfully! Please set your password.'),
+              content: Text('Email verified successfully! Please set your password to complete account creation.'),
               backgroundColor: Colors.green,
             ),
           );
@@ -449,14 +449,53 @@ class _SignupPageState extends State<SignupPage> {
             'isProfileComplete': false,
             'emailVerified': true,
             'type': 'user',
+            'needsProfileSetup': true, // Flag to indicate this is a new account
           });
 
-          // Navigate to login page
-          Navigator.pushReplacementNamed(context, '/login');
+          // Show success dialog
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: Text('Account Created Successfully'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    color: Colors.green,
+                    size: 48,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Your account has been created successfully!',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'The next step is to set up your profile. This is required before you can report incidents.',
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text('Continue to Profile Setup'),
+                ),
+              ],
+            ),
+          );
+
+          // Navigate directly to MainScreen
+          Navigator.pushReplacementNamed(context, '/main');
           
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Account created successfully! Please login.'),
+              content: Text('Account created successfully!'),
               backgroundColor: Colors.green,
             ),
           );

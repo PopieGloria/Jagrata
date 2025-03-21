@@ -1,0 +1,2 @@
+/Users/arfan/Documents/jagrata/android/app/.cxx/RelWithDebInfo/5h184n20/x86/CMakeFiles/edit_cache.dir
+/Users/arfan/Documents/jagrata/android/app/.cxx/RelWithDebInfo/5h184n20/x86/CMakeFiles/rebuild_cache.dir

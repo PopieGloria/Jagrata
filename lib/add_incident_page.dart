@@ -10,9 +10,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'main_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'main.dart' as app;
 
 
 class AddIncidentPage extends StatefulWidget {
+  final bool isProfileComplete; // New parameter for profile completion status
+  final Function? onRequestProfileTab; // Add callback to request profile tab
+  
+  const AddIncidentPage({Key? key, this.isProfileComplete = false, this.onRequestProfileTab}) : super(key: key);
+  
   @override
   _AddIncidentPageState createState() => _AddIncidentPageState();
 }
@@ -44,7 +51,7 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
   final List<String> predefinedDepartments = [
     'Central Vigilance Commission (CVC)',
     'State Vigilance & Anti-Corruption Bureau',
-    'Urban Local Bodies (ULB) / Municipal Corporations',
+    'Urban Local Bodies (ULB)',
     'Chief Vigilance Officers (CVO) of Respective PSUs',
   ];
 
@@ -75,7 +82,7 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
   List<String> _departmentsBasedOnSeverity = [];
 
   // Add this to your state variables
-  String? _selectedDepartment = 'ULB'; // Make it nullable but keep default value
+  String? _selectedDepartment = 'ULB';
   String? _selectedState;
 
   // Add this list of Indian states
@@ -118,11 +125,54 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
     'Puducherry'
   ];
 
+  // Add this variable to track the real-time profile status
+  bool _isProfileComplete = false;
+
+  // Add these missing variables in the _AddIncidentPageState class
+  String? _selectedDistrict;
+  TextEditingController _titleController = TextEditingController();
+
+  // Modify the witnesses section to allow multiple witnesses like the officers section
+  final List<TextEditingController> _witnessControllers = [TextEditingController()];
+
   @override
   void initState() {
     super.initState();
-    // Initialize the Vertex AI model with the correct model name
+    // Start with the provided value
+    _isProfileComplete = widget.isProfileComplete;
+    // Then check the latest status from shared preferences
+    _checkLatestProfileStatus();
+    
+    // Initialize Firebase VertexAI model
     _model = FirebaseVertexAI.instance.generativeModel(model: 'gemini-1.5-flash');
+  }
+
+  // Add this method to check the latest profile status
+  Future<void> _checkLatestProfileStatus() async {
+    try {
+      // Get the latest status from shared preferences
+      final prefs = await SharedPreferences.getInstance();
+      final isComplete = prefs.getBool('profile_complete') ?? false;
+      
+      print('AddIncidentPage - Latest profile status from prefs: $isComplete');
+      
+      // Also check the global variable
+      final globalStatus = app.globalProfileComplete;
+      print('AddIncidentPage - Global profile status: $globalStatus');
+      
+      // Use either source (prefer global for consistency)
+      final finalStatus = globalStatus || isComplete;
+      
+      // Only update state if different from current
+      if (finalStatus != _isProfileComplete) {
+        setState(() {
+          _isProfileComplete = finalStatus;
+          print('AddIncidentPage - Updated profile status: $_isProfileComplete');
+        });
+      }
+    } catch (e) {
+      print('Error checking latest profile status: $e');
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -639,25 +689,166 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async {
+        // Just return without special handling
+        return true;
+      },
+      child: Scaffold(
       appBar: AppBar(
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: Text(
-          'Report Incident',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+          title: Text('Report Incident'),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.pop(context);
+            },
           ),
         ),
-        backgroundColor: Theme.of(context).primaryColor,
+        body: _isProfileComplete ? _buildReportForm() : _buildProfileIncompleteMessage(),
       ),
-      body: Padding(
+    );
+  }
+
+  Widget _buildReportForm() {
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
+        child: AnimatedSize(
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Container(
+                  padding: EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.blue.shade500,
+                        Colors.blue.shade700,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundColor: Colors.white.withOpacity(0.2),
+                        child: Icon(
+                          Icons.report_problem_outlined,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Report Corruption Incident',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Your report helps us fight corruption. All information is kept confidential.',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white.withOpacity(0.9),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 24),
+              
+              // Names section
+              _buildNamesSection(),
+              SizedBox(height: 24),
+              
+              // State & District
+              _buildStateDistrictSection(),
+              SizedBox(height: 24),
+              
+              // Incident details
+              _buildInputSection(),
+              
+              // Location
+              SizedBox(height: 24),
+              _buildLocationSection(),
+              
+              // Date & Time
+              SizedBox(height: 24),
+              _buildDateTimeSection(),
+              
+              // Witnesses section
+              SizedBox(height: 24),
+              _buildWitnessesSection(),
+              
+              // Evidence section
+              SizedBox(height: 24),
+              _buildAttachmentSection(),
+              
+              // AI summary section
+              if (_isGeneratingSummary || _aiSummaryController.text.isNotEmpty)
+                Column(
+                  children: [
+                    SizedBox(height: 24),
+                    _buildAISummarySection(),
+                  ],
+                ),
+                
+              // Add padding before the submit button
+              SizedBox(height: 40),
+              
+              // Submit button
+              _buildSubmitButton(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildNamesSection() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+            Text(
+              'Officer Details',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue.shade800,
+              ),
+            ),
+            SizedBox(height: 16),
+            
+            // Names input
               ..._nameControllers.asMap().entries.map((entry) {
                 int index = entry.key;
                 TextEditingController controller = entry.value;
@@ -709,262 +900,271 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
                   ),
                 );
               }).toList(),
-              TextFormField(
-                controller: _locationController,
-                decoration: InputDecoration(
-                  labelText: 'Location',
-                  border: OutlineInputBorder(),
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.info_outline),
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              content: Text('Location of incident.'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: Text('OK'),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.my_location),
-                        onPressed: _getCurrentLocation,
-                      ),
-                    ],
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the location';
-                  }
-                  return null;
-                },
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildStateDistrictSection() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Location Information',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue.shade800,
               ),
-              const SizedBox(height: 16.0),
-              Container(
-                margin: EdgeInsets.only(bottom: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Type of Incident',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.blue),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButtonHideUnderline(
-                              child: ButtonTheme(
-                                alignedDropdown: true,
-                                child: DropdownButton<String>(
-                                  value: _selectedIncidentType,
-                                  hint: Text('Select incident type'),
-                                  isExpanded: true,
-                                  icon: Icon(Icons.arrow_drop_down_circle, color: Colors.blue),
-                                  iconSize: 24,
-                                  elevation: 16,
-                                  style: TextStyle(color: Colors.black, fontSize: 16),
-                                  items: incidentTypes.map((String type) {
-                                    return DropdownMenuItem<String>(
-                                      value: type,
-                                      child: Text(type),
-                                    );
-                                  }).toList(),
-                                  onChanged: (String? newValue) {
-                                    setState(() {
-                                      _selectedIncidentType = newValue;
-                                      if (newValue != 'Other') {
-                                        _otherIncidentTypeController.clear();
-                                      }
-                                    });
-                                  },
-                                ),
-                              ),
-                            ),
-                          ),
-                          Container(
-                            decoration: BoxDecoration(
-                              border: Border(
-                                left: BorderSide(color: Colors.blue),
-                              ),
-                            ),
-                            child: IconButton(
-                              icon: Icon(Icons.info_outline, color: Colors.blue),
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return AlertDialog(
-                                      title: Text('Types of Corruption'),
-                                      content: SingleChildScrollView(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            _buildIncidentTypeInfo(
-                                              'Bribery',
-                                              'Offering, giving, receiving, or soliciting something of value to influence an official action.',
-                                            ),
-                                            _buildIncidentTypeInfo(
-                                              'Embezzlement',
-                                              'Theft or misappropriation of funds placed in one\'s trust or belonging to one\'s employer.',
-                                            ),
-                                            _buildIncidentTypeInfo(
-                                              'Fraud',
-                                              'Deception for personal gain or to damage another individual/organization.',
-                                            ),
-                                            _buildIncidentTypeInfo(
-                                              'Abuse of Power',
-                                              'Using one\'s position of authority for personal gain or to unfairly advantage/disadvantage others.',
-                                            ),
-                                            _buildIncidentTypeInfo(
-                                              'Nepotism',
-                                              'Favoritism shown to relatives or close friends by those in power.',
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(context),
-                                          child: Text('Close'),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (_selectedIncidentType == 'Other') ...[
-                      SizedBox(height: 16),
-                      TextFormField(
-                        controller: _otherIncidentTypeController,
-                        decoration: InputDecoration(
-                          labelText: 'Specify Other Incident Type',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (_selectedIncidentType == 'Other' && (value == null || value.isEmpty)) {
-                            return 'Please specify the incident type';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
-                  ],
+            ),
+            SizedBox(height: 16),
+            
+            // State dropdown
+            _buildSmoothDropdown(
+              label: 'State',
+              value: _selectedState,
+              items: indianStates,
+              onChanged: (newValue) {
+                setState(() {
+                  _selectedState = newValue;
+                  // Reset district when state changes
+                  _selectedDistrict = null;
+                });
+              },
+              prefixIcon: Icons.location_city,
+            ),
+            
+            // District dropdown, only if state is selected
+            if (_selectedState != null)
+              AnimatedSize(
+                duration: Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: _buildSmoothDropdown(
+                  label: 'District',
+                  value: _selectedDistrict,
+                  items: _getDistrictsForState(_selectedState!),
+                  onChanged: (newValue) {
+                    setState(() {
+                      _selectedDistrict = newValue;
+                    });
+                  },
+                  prefixIcon: Icons.location_on,
                 ),
               ),
-              const SizedBox(height: 16.0),
-              Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => _selectDate(context),
-                      child: InputDecorator(
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Date of Incident',
-                          suffixIcon: Icon(Icons.calendar_today),
-                        ),
-                        child: Text(
-                          _incidentDate == null
-                              ? 'Select Date'
-                              : DateFormat.yMd().format(_incidentDate!),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16.0),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => _selectTime(context),
-                      child: InputDecorator(
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Time of Incident',
-                          suffixIcon: Icon(Icons.access_time),
-                        ),
-                        child: Text(
-                          _incidentTime == null
-                              ? 'Select Time'
-                              : _incidentTime!.format(context),
-                        ),
-                      ),
-                    ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  // Helper method to get districts for a selected state
+  List<String> _getDistrictsForState(String state) {
+    // Default empty list to avoid null issues
+    List<String> districts = [];
+    
+    // More comprehensive list of districts for each state
+    switch (state) {
+      case 'Andhra Pradesh':
+        districts = ['Anantapur', 'Chittoor', 'East Godavari', 'Guntur', 'Krishna', 'Kurnool', 'Nellore', 'Prakasam', 'Srikakulam', 'Visakhapatnam', 'Vizianagaram', 'West Godavari', 'YSR Kadapa'];
+        break;
+      case 'Arunachal Pradesh':
+        districts = ['Anjaw', 'Changlang', 'Dibang Valley', 'East Kameng', 'East Siang', 'Kamle', 'Kra Daadi', 'Kurung Kumey', 'Lepa Rada', 'Lohit', 'Longding', 'Lower Dibang Valley', 'Lower Siang', 'Lower Subansiri', 'Namsai', 'Pakke Kessang', 'Papum Pare', 'Shi Yomi', 'Siang', 'Tawang', 'Tirap', 'Upper Siang', 'Upper Subansiri', 'West Kameng', 'West Siang'];
+        break;
+      case 'Assam':
+        districts = ['Baksa', 'Barpeta', 'Biswanath', 'Bongaigaon', 'Cachar', 'Charaideo', 'Chirang', 'Darrang', 'Dhemaji', 'Dhubri', 'Dibrugarh', 'Dima Hasao', 'Goalpara', 'Golaghat', 'Hailakandi', 'Hojai', 'Jorhat', 'Kamrup', 'Kamrup Metropolitan', 'Karbi Anglong', 'Karimganj', 'Kokrajhar', 'Lakhimpur', 'Majuli', 'Morigaon', 'Nagaon', 'Nalbari', 'Sivasagar', 'Sonitpur', 'South Salmara-Mankachar', 'Tinsukia', 'Udalguri', 'West Karbi Anglong'];
+        break;
+      case 'Bihar':
+        districts = ['Araria', 'Arwal', 'Aurangabad', 'Banka', 'Begusarai', 'Bhagalpur', 'Bhojpur', 'Buxar', 'Darbhanga', 'East Champaran', 'Gaya', 'Gopalganj', 'Jamui', 'Jehanabad', 'Kaimur', 'Katihar', 'Khagaria', 'Kishanganj', 'Lakhisarai', 'Madhepura', 'Madhubani', 'Munger', 'Muzaffarpur', 'Nalanda', 'Nawada', 'Patna', 'Purnia', 'Rohtas', 'Saharsa', 'Samastipur', 'Saran', 'Sheikhpura', 'Sheohar', 'Sitamarhi', 'Siwan', 'Supaul', 'Vaishali', 'West Champaran'];
+        break;
+      case 'Chhattisgarh':
+        districts = ['Balod', 'Baloda Bazar', 'Balrampur', 'Bastar', 'Bemetara', 'Bijapur', 'Bilaspur', 'Dantewada', 'Dhamtari', 'Durg', 'Gariaband', 'Janjgir-Champa', 'Jashpur', 'Kabirdham', 'Kanker', 'Kondagaon', 'Korba', 'Koriya', 'Mahasamund', 'Mungeli', 'Narayanpur', 'Raigarh', 'Raipur', 'Rajnandgaon', 'Sukma', 'Surajpur', 'Surguja'];
+        break;
+      case 'Goa':
+        districts = ['North Goa', 'South Goa'];
+        break;
+      case 'Gujarat':
+        districts = ['Ahmedabad', 'Amreli', 'Anand', 'Aravalli', 'Banaskantha', 'Bharuch', 'Bhavnagar', 'Botad', 'Chhota Udaipur', 'Dahod', 'Dang', 'Devbhoomi Dwarka', 'Gandhinagar', 'Gir Somnath', 'Jamnagar', 'Junagadh', 'Kheda', 'Kutch', 'Mahisagar', 'Mehsana', 'Morbi', 'Narmada', 'Navsari', 'Panchmahal', 'Patan', 'Porbandar', 'Rajkot', 'Sabarkantha', 'Surat', 'Surendranagar', 'Tapi', 'Vadodara', 'Valsad'];
+        break;
+      case 'Haryana':
+        districts = ['Ambala', 'Bhiwani', 'Charkhi Dadri', 'Faridabad', 'Fatehabad', 'Gurugram', 'Hisar', 'Jhajjar', 'Jind', 'Kaithal', 'Karnal', 'Kurukshetra', 'Mahendragarh', 'Nuh', 'Palwal', 'Panchkula', 'Panipat', 'Rewari', 'Rohtak', 'Sirsa', 'Sonipat', 'Yamunanagar'];
+        break;
+      case 'Himachal Pradesh':
+        districts = ['Bilaspur', 'Chamba', 'Hamirpur', 'Kangra', 'Kinnaur', 'Kullu', 'Lahaul and Spiti', 'Mandi', 'Shimla', 'Sirmaur', 'Solan', 'Una'];
+        break;
+      case 'Jharkhand':
+        districts = ['Bokaro', 'Chatra', 'Deoghar', 'Dhanbad', 'Dumka', 'East Singhbhum', 'Garhwa', 'Giridih', 'Godda', 'Gumla', 'Hazaribagh', 'Jamtara', 'Khunti', 'Koderma', 'Latehar', 'Lohardaga', 'Pakur', 'Palamu', 'Ramgarh', 'Ranchi', 'Sahebganj', 'Seraikela-Kharsawan', 'Simdega', 'West Singhbhum'];
+        break;
+      case 'Karnataka':
+        districts = ['Bagalkot', 'Ballari', 'Belagavi', 'Bengaluru Rural', 'Bengaluru Urban', 'Bidar', 'Chamarajanagar', 'Chikballapur', 'Chikkamagaluru', 'Chitradurga', 'Dakshina Kannada', 'Davanagere', 'Dharwad', 'Gadag', 'Hassan', 'Haveri', 'Kalaburagi', 'Kodagu', 'Kolar', 'Koppal', 'Mandya', 'Mysuru', 'Raichur', 'Ramanagara', 'Shivamogga', 'Tumakuru', 'Udupi', 'Uttara Kannada', 'Vijayapura', 'Yadgir'];
+        break;
+      case 'Kerala':
+        districts = ['Alappuzha', 'Ernakulam', 'Idukki', 'Kannur', 'Kasaragod', 'Kollam', 'Kottayam', 'Kozhikode', 'Malappuram', 'Palakkad', 'Pathanamthitta', 'Thiruvananthapuram', 'Thrissur', 'Wayanad'];
+        break;
+      case 'Madhya Pradesh':
+        districts = ['Agar Malwa', 'Alirajpur', 'Anuppur', 'Ashoknagar', 'Balaghat', 'Barwani', 'Betul', 'Bhind', 'Bhopal', 'Burhanpur', 'Chhatarpur', 'Chhindwara', 'Damoh', 'Datia', 'Dewas', 'Dhar', 'Dindori', 'Guna', 'Gwalior', 'Harda', 'Hoshangabad', 'Indore', 'Jabalpur', 'Jhabua', 'Katni', 'Khandwa', 'Khargone', 'Mandla', 'Mandsaur', 'Morena', 'Narsinghpur', 'Neemuch', 'Panna', 'Raisen', 'Rajgarh', 'Ratlam', 'Rewa', 'Sagar', 'Satna', 'Sehore', 'Seoni', 'Shahdol', 'Shajapur', 'Sheopur', 'Shivpuri', 'Sidhi', 'Singrauli', 'Tikamgarh', 'Ujjain', 'Umaria', 'Vidisha'];
+        break;
+      case 'Maharashtra':
+        districts = ['Ahmednagar', 'Akola', 'Amravati', 'Aurangabad', 'Beed', 'Bhandara', 'Buldhana', 'Chandrapur', 'Dhule', 'Gadchiroli', 'Gondia', 'Hingoli', 'Jalgaon', 'Jalna', 'Kolhapur', 'Latur', 'Mumbai City', 'Mumbai Suburban', 'Nagpur', 'Nanded', 'Nandurbar', 'Nashik', 'Osmanabad', 'Palghar', 'Parbhani', 'Pune', 'Raigad', 'Ratnagiri', 'Sangli', 'Satara', 'Sindhudurg', 'Solapur', 'Thane', 'Wardha', 'Washim', 'Yavatmal'];
+        break;
+      case 'Manipur':
+        districts = ['Bishnupur', 'Chandel', 'Churachandpur', 'Imphal East', 'Imphal West', 'Jiribam', 'Kakching', 'Kamjong', 'Kangpokpi', 'Noney', 'Pherzawl', 'Senapati', 'Tamenglong', 'Tengnoupal', 'Thoubal', 'Ukhrul'];
+        break;
+      case 'Meghalaya':
+        districts = ['East Garo Hills', 'East Jaintia Hills', 'East Khasi Hills', 'North Garo Hills', 'Ri Bhoi', 'South Garo Hills', 'South West Garo Hills', 'South West Khasi Hills', 'West Garo Hills', 'West Jaintia Hills', 'West Khasi Hills'];
+        break;
+      case 'Mizoram':
+        districts = ['Aizawl', 'Champhai', 'Hnahthial', 'Khawzawl', 'Kolasib', 'Lawngtlai', 'Lunglei', 'Mamit', 'Saiha', 'Saitual', 'Serchhip'];
+        break;
+      case 'Nagaland':
+        districts = ['Dimapur', 'Kiphire', 'Kohima', 'Longleng', 'Mokokchung', 'Mon', 'Peren', 'Phek', 'Tuensang', 'Wokha', 'Zunheboto'];
+        break;
+      case 'Odisha':
+        districts = ['Angul', 'Balangir', 'Balasore', 'Bargarh', 'Bhadrak', 'Boudh', 'Cuttack', 'Deogarh', 'Dhenkanal', 'Gajapati', 'Ganjam', 'Jagatsinghpur', 'Jajpur', 'Jharsuguda', 'Kalahandi', 'Kandhamal', 'Kendrapara', 'Kendujhar', 'Khordha', 'Koraput', 'Malkangiri', 'Mayurbhanj', 'Nabarangpur', 'Nayagarh', 'Nuapada', 'Puri', 'Rayagada', 'Sambalpur', 'Subarnapur', 'Sundargarh'];
+        break;
+      case 'Punjab':
+        districts = ['Amritsar', 'Barnala', 'Bathinda', 'Faridkot', 'Fatehgarh Sahib', 'Fazilka', 'Ferozepur', 'Gurdaspur', 'Hoshiarpur', 'Jalandhar', 'Kapurthala', 'Ludhiana', 'Mansa', 'Moga', 'Muktsar', 'Pathankot', 'Patiala', 'Rupnagar', 'Sahibzada Ajit Singh Nagar', 'Sangrur', 'Shaheed Bhagat Singh Nagar', 'Tarn Taran'];
+        break;
+      case 'Rajasthan':
+        districts = ['Ajmer', 'Alwar', 'Banswara', 'Baran', 'Barmer', 'Bharatpur', 'Bhilwara', 'Bikaner', 'Bundi', 'Chittorgarh', 'Churu', 'Dausa', 'Dholpur', 'Dungarpur', 'Hanumangarh', 'Jaipur', 'Jaisalmer', 'Jalore', 'Jhalawar', 'Jhunjhunu', 'Jodhpur', 'Karauli', 'Kota', 'Nagaur', 'Pali', 'Pratapgarh', 'Rajsamand', 'Sawai Madhopur', 'Sikar', 'Sirohi', 'Sri Ganganagar', 'Tonk', 'Udaipur'];
+        break;
+      case 'Sikkim':
+        districts = ['East Sikkim', 'North Sikkim', 'South Sikkim', 'West Sikkim'];
+        break;
+      case 'Tamil Nadu':
+        districts = ['Ariyalur', 'Chengalpattu', 'Chennai', 'Coimbatore', 'Cuddalore', 'Dharmapuri', 'Dindigul', 'Erode', 'Kallakurichi', 'Kanchipuram', 'Kanyakumari', 'Karur', 'Krishnagiri', 'Madurai', 'Mayiladuthurai', 'Nagapattinam', 'Namakkal', 'Nilgiris', 'Perambalur', 'Pudukkottai', 'Ramanathapuram', 'Ranipet', 'Salem', 'Sivaganga', 'Tenkasi', 'Thanjavur', 'Theni', 'Thoothukudi', 'Tiruchirappalli', 'Tirunelveli', 'Tirupattur', 'Tiruppur', 'Tiruvallur', 'Tiruvannamalai', 'Tiruvarur', 'Vellore', 'Viluppuram', 'Virudhunagar'];
+        break;
+      case 'Telangana':
+        districts = ['Adilabad', 'Bhadradri Kothagudem', 'Hyderabad', 'Jagtial', 'Jangaon', 'Jayashankar Bhupalpally', 'Jogulamba Gadwal', 'Kamareddy', 'Karimnagar', 'Khammam', 'Kumuram Bheem Asifabad', 'Mahabubabad', 'Mahabubnagar', 'Mancherial', 'Medak', 'Medchal–Malkajgiri', 'Mulugu', 'Nagarkurnool', 'Nalgonda', 'Narayanpet', 'Nirmal', 'Nizamabad', 'Peddapalli', 'Rajanna Sircilla', 'Rangareddy', 'Sangareddy', 'Siddipet', 'Suryapet', 'Vikarabad', 'Wanaparthy', 'Warangal Rural', 'Warangal Urban', 'Yadadri Bhuvanagiri'];
+        break;
+      case 'Tripura':
+        districts = ['Dhalai', 'Gomati', 'Khowai', 'North Tripura', 'Sepahijala', 'South Tripura', 'Unakoti', 'West Tripura'];
+        break;
+      case 'Uttar Pradesh':
+        districts = ['Agra', 'Aligarh', 'Ambedkar Nagar', 'Amethi', 'Amroha', 'Auraiya', 'Ayodhya', 'Azamgarh', 'Baghpat', 'Bahraich', 'Ballia', 'Balrampur', 'Banda', 'Barabanki', 'Bareilly', 'Basti', 'Bhadohi', 'Bijnor', 'Budaun', 'Bulandshahr', 'Chandauli', 'Chitrakoot', 'Deoria', 'Etah', 'Etawah', 'Farrukhabad', 'Fatehpur', 'Firozabad', 'Gautam Buddha Nagar', 'Ghaziabad', 'Ghazipur', 'Gonda', 'Gorakhpur', 'Hamirpur', 'Hapur', 'Hardoi', 'Hathras', 'Jalaun', 'Jaunpur', 'Jhansi', 'Kannauj', 'Kanpur Dehat', 'Kanpur Nagar', 'Kasganj', 'Kaushambi', 'Kheri', 'Kushinagar', 'Lalitpur', 'Lucknow', 'Maharajganj', 'Mahoba', 'Mainpuri', 'Mathura', 'Mau', 'Meerut', 'Mirzapur', 'Moradabad', 'Muzaffarnagar', 'Pilibhit', 'Pratapgarh', 'Prayagraj', 'Raebareli', 'Rampur', 'Saharanpur', 'Sambhal', 'Sant Kabir Nagar', 'Shahjahanpur', 'Shamli', 'Shravasti', 'Siddharthnagar', 'Sitapur', 'Sonbhadra', 'Sultanpur', 'Unnao', 'Varanasi'];
+        break;
+      case 'Uttarakhand':
+        districts = ['Almora', 'Bageshwar', 'Chamoli', 'Champawat', 'Dehradun', 'Haridwar', 'Nainital', 'Pauri Garhwal', 'Pithoragarh', 'Rudraprayag', 'Tehri Garhwal', 'Udham Singh Nagar', 'Uttarkashi'];
+        break;
+      case 'West Bengal':
+        districts = ['Alipurduar', 'Bankura', 'Birbhum', 'Cooch Behar', 'Dakshin Dinajpur', 'Darjeeling', 'Hooghly', 'Howrah', 'Jalpaiguri', 'Jhargram', 'Kalimpong', 'Kolkata', 'Malda', 'Murshidabad', 'Nadia', 'North 24 Parganas', 'Paschim Bardhaman', 'Paschim Medinipur', 'Purba Bardhaman', 'Purba Medinipur', 'Purulia', 'South 24 Parganas', 'Uttar Dinajpur'];
+        break;
+      case 'Andaman and Nicobar Islands':
+        districts = ['Nicobar', 'North and Middle Andaman', 'South Andaman'];
+        break;
+      case 'Chandigarh':
+        districts = ['Chandigarh'];
+        break;
+      case 'Dadra and Nagar Haveli and Daman and Diu':
+        districts = ['Dadra and Nagar Haveli', 'Daman', 'Diu'];
+        break;
+      case 'Delhi':
+        districts = ['Central Delhi', 'East Delhi', 'New Delhi', 'North Delhi', 'North East Delhi', 'North West Delhi', 'Shahdara', 'South Delhi', 'South East Delhi', 'South West Delhi', 'West Delhi'];
+        break;
+      case 'Jammu and Kashmir':
+        districts = ['Anantnag', 'Bandipora', 'Baramulla', 'Budgam', 'Doda', 'Ganderbal', 'Jammu', 'Kathua', 'Kishtwar', 'Kulgam', 'Kupwara', 'Poonch', 'Pulwama', 'Rajouri', 'Ramban', 'Reasi', 'Samba', 'Shopian', 'Srinagar', 'Udhampur'];
+        break;
+      case 'Ladakh':
+        districts = ['Kargil', 'Leh'];
+        break;
+      case 'Lakshadweep':
+        districts = ['Lakshadweep'];
+        break;
+      case 'Puducherry':
+        districts = ['Karaikal', 'Mahe', 'Puducherry', 'Yanam'];
+        break;
+      default:
+        districts = ['Select District'];
+        break;
+    }
+    
+    return districts;
+  }
+  
+  Widget _buildInputSection() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Incident Details',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue.shade800,
+              ),
+            ),
+            SizedBox(height: 16),
+            
+            // Incident Type dropdown
+            _buildSmoothDropdown(
+              label: 'Type of Corruption',
+              value: _selectedIncidentType,
+              items: incidentTypes,
+              onChanged: (newValue) {
+                setState(() {
+                  _selectedIncidentType = newValue;
+                });
+              },
+              prefixIcon: Icons.warning_amber_rounded,
+            ),
+            
+            // Show "Other" text field if 'Other' is selected
+            if (_selectedIncidentType == 'Other') 
+              AnimatedSize(
+                duration: Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: _buildSmoothTextField(
+                  controller: _otherIncidentTypeController,
+                  label: 'Specify Other Type',
+                  icon: Icons.edit,
+                  validator: (value) {
+                    if (_selectedIncidentType == 'Other' && (value == null || value.isEmpty)) {
+                      return 'Please specify the type of incident';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+            
+            // Department dropdown - replace with new implementation
+            Container(
+              margin: EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
                   ),
                 ],
               ),
-              const SizedBox(height: 16.0),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Description of Incident',
-                  border: OutlineInputBorder(),
-                  helperText: 'Provide detailed description of the incident',
-                ),
-                maxLines: 5,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please describe the incident';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12.0),
-              Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: _buildGenerateButton(),
-                ),
-              ),
-              const SizedBox(height: 16.0),
-              _buildAISummaryField(),
-              const SizedBox(height: 16.0),
-              TextFormField(
-                controller: _severityController,
-                decoration: InputDecoration(
-                  labelText: 'Severity',
-                  border: OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Colors.grey.shade100,
-                  suffixIcon: Icon(Icons.auto_awesome, color: Colors.blue),
-                ),
-                maxLines: 1,
-                readOnly: true,
-                enabled: false,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: _getSeverityColor(_severityController.text),
-                ),
-              ),
-              SizedBox(height: 16.0),
-              DropdownButtonFormField<String>(
+              child: DropdownButtonFormField<String>(
                 value: _selectedDepartment,
                 decoration: InputDecoration(
                   labelText: 'Department',
-                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.business, color: Colors.blue.shade700),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                 ),
                 isExpanded: true,
@@ -991,223 +1191,534 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
                     )
                   ),
                   DropdownMenuItem(
-                    value: 'Chief Vigilance Officers (CVO)', 
+                    value: 'Chief Vigilance Officers', 
                     child: Text(
-                      'Chief Vigilance Officers (CVO)',
+                      'Chief Vigilance Officers (CVO) of Respective PSUs',
                       overflow: TextOverflow.ellipsis,
                     )
                   ),
                 ],
-                onChanged: (String? newValue) {
+                onChanged: (newValue) {
                   setState(() {
                     _selectedDepartment = newValue;
-                    _selectedState = null;
                   });
                 },
+                dropdownColor: Colors.white,
+                icon: Icon(Icons.arrow_drop_down, color: Colors.blue.shade700),
               ),
-              SizedBox(height: 16),
-              if (_selectedDepartment == 'ULB' || 
-                  _selectedDepartment == 'State Vigilance & Anti-Corruption Bureau')
-                DropdownButtonFormField<String>(
-                  value: _selectedState,
-                  decoration: InputDecoration(
-                    labelText: 'State',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            ),
+            
+            // Title field with smooth animation
+            _buildSmoothTextField(
+              controller: _titleController,
+              label: 'Incident Title',
+              icon: Icons.title,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a title';
+                }
+                return null;
+              },
+            ),
+            
+            // Description field with smooth animation
+            _buildSmoothTextField(
+              controller: _descriptionController,
+              label: 'Description',
+              icon: Icons.description,
+              maxLines: 5,
+              keyboardType: TextInputType.multiline,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a description';
+                }
+                return null;
+              },
+            ),
+            
+            // Add the generate summary button
+            SizedBox(height: 16),
+            
+            _buildGenerateButton(),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildLocationSection() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Location',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue.shade800,
+              ),
+            ),
+            SizedBox(height: 16),
+            
+            // Location input
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _buildSmoothTextField(
+                    controller: _locationController,
+                    label: 'Location',
+                    icon: Icons.location_on,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a location';
+                      }
+                      return null;
+                    },
                   ),
-                  isExpanded: true,
-                  items: indianStates.map((String state) {
-                    return DropdownMenuItem(
-                      value: state,
-                      child: Text(
-                        state,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedState = newValue;
-                    });
-                  },
                 ),
-              SizedBox(height: 16.0),
-              TextFormField(
-                controller: _witnessesController,
-                decoration: InputDecoration(
-                  labelText: 'Witnesses (optional)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16.0),
-              _buildAttachmentSection(),
-              const SizedBox(height: 16.0),
-              Center(
-                child: SizedBox(
-                  width: 120,
-                  child: ElevatedButton(
-                    onPressed: _isUploading
-                        ? null
-                        : () async {
-                          if (_formKey.currentState!.validate()) {
-                            try {
-                              final User? currentUser = FirebaseAuth.instance.currentUser;
-                              if (currentUser == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('You must be logged in to report an incident')),
-                                );
-                                return;
-                              }
-
-                              setState(() => _isUploading = true);
-
-                              // Show upload progress dialog
-                              if (_attachedFiles.isNotEmpty) {
-                                showDialog(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (BuildContext dialogContext) {
-                                    // Store the dialog context
-                                    _uploadDialogContext = dialogContext;
-                                    return WillPopScope(
-                                      onWillPop: () async {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text('Please wait while files are uploading...'),
-                                            backgroundColor: Colors.orange,
-                                          ),
-                                        );
-                                        return false;
-                                      },
-                                      child: StatefulBuilder(
-                                        builder: (dialogContext, setDialogState) {
-                                          return AlertDialog(
-                                            title: Text('Uploading Files'),
-                                            content: SingleChildScrollView(
-                                              child: Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    'Please wait while your files are being uploaded...',
-                                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                                  ),
-                                                  SizedBox(height: 12),
-                                                  ValueListenableBuilder<Map<String, double>>(
-                                                    valueListenable: _uploadProgressNotifier,
-                                                    builder: (context, progress, _) {
-                                                      return Column(
-                                                        children: progress.entries.map((entry) {
-                                                          return Padding(
-                                                            padding: const EdgeInsets.symmetric(vertical: 4.0),
-                                                            child: Column(
-                                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                                              children: [
-                                                                Row(
-                                                                  children: [
-                                                                    Expanded(
-                                                                      child: Text(
-                                                                        entry.key,
-                                                                        maxLines: 1,
-                                                                        overflow: TextOverflow.ellipsis,
-                                                                        style: TextStyle(fontSize: 12),
-                                                                      ),
-                                                                    ),
-                                                                    Text(
-                                                                      '${(entry.value * 100).toStringAsFixed(0)}%',
-                                                                      style: TextStyle(fontSize: 12),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                                SizedBox(height: 4),
-                                                                LinearProgressIndicator(
-                                                                  value: entry.value,
-                                                                  backgroundColor: Colors.grey.shade200,
-                                                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade300),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          );
-                                                        }).toList(),
-                                                      );
-                                                    },
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    );
-                                  },
-                                );
-                              }
-
-                              // Upload files and save incident
-                              List<String> fileUrls = await _uploadFiles();
-                              await _saveIncident(fileUrls);
-
-                              // Close the upload progress dialog if it's open
-                              if (_uploadDialogContext != null) {
-                                Navigator.of(_uploadDialogContext!).pop();
-                                _uploadDialogContext = null;  // Clear the stored context
-                              }
-
-                              setState(() => _isUploading = false);
-                            } catch (e) {
-                              // Close dialog even on error
-                              if (_uploadDialogContext != null) {
-                                Navigator.of(_uploadDialogContext!).pop();
-                                _uploadDialogContext = null;
-                              }
-                              
-                              setState(() => _isUploading = false);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error submitting incident: ${e.toString()}'),
-                                  backgroundColor: Colors.red,
+                SizedBox(width: 10),
+                Container(
+                  height: 56,
+                  margin: EdgeInsets.only(top: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    icon: Icon(Icons.my_location, color: Colors.blue.shade700),
+                    tooltip: 'Use current location',
+                    onPressed: () async {
+                      try {
+                        // Show loading indicator
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
                                 ),
-                              );
-                            }
-                          }
-                        },
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      backgroundColor: Colors.blue.shade400,
-                      foregroundColor: Colors.white,
-                      elevation: 2,
-                      minimumSize: Size(120, 45),
-                    ),
-                    child: Container(
-                      width: 120,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.send,
-                            size: 16,
-                            color: Colors.white,
+                                SizedBox(width: 10),
+                                Text('Detecting location...'),
+                              ],
+                            ),
+                            duration: Duration(seconds: 2),
                           ),
-                          SizedBox(width: 8),
+                        );
+                        
+                        await _getCurrentLocation();
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error getting location: ${e.toString()}'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildDateTimeSection() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+            Text(
+              'Date and Time',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue.shade800,
+              ),
+            ),
+            SizedBox(height: 16),
+            
+            // Date picker
+            InkWell(
+              onTap: () => _selectDate(context),
+              child: Container(
+                margin: EdgeInsets.only(bottom: 16),
+                padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today, color: Colors.blue.shade700),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            'Submit',
+                            'Date',
                             style: TextStyle(
                               fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                          _incidentDate == null
+                              ? 'Select Date'
+                                : DateFormat('MMMM d, yyyy').format(_incidentDate!),
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black87,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
+                    Icon(Icons.arrow_drop_down, color: Colors.blue.shade700),
+                  ],
+                ),
+              ),
+            ),
+            
+            // Time picker
+            InkWell(
+              onTap: () => _selectTime(context),
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.access_time, color: Colors.blue.shade700),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Time',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                          _incidentTime == null
+                              ? 'Select Time'
+                              : _incidentTime!.format(context),
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.arrow_drop_down, color: Colors.blue.shade700),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildAISummarySection() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'AI Summary',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue.shade800,
+              ),
+            ),
+            SizedBox(height: 16),
+            
+            // AI summary field
+            _buildAISummaryField(),
+            
+            // Add the severity field display
+            if (_severityController.text.isNotEmpty) ...[
+              SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _getSeverityColor(_severityController.text).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _getSeverityColor(_severityController.text).withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: _getSeverityColor(_severityController.text),
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'Severity: ${_severityController.text}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: _getSeverityColor(_severityController.text),
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildWitnessesSection() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Witnesses',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue.shade800,
+              ),
+            ),
+            SizedBox(height: 16),
+            
+            // Multiple witness fields
+            ..._witnessControllers.asMap().entries.map((entry) {
+              int index = entry.key;
+              TextEditingController controller = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: TextFormField(
+                  controller: controller,
+                  decoration: InputDecoration(
+                    labelText: 'Witness Name',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                    prefixIcon: Icon(Icons.person_outline),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(index == 0 ? Icons.add : Icons.remove),
+                          onPressed: index == 0
+                              ? (_witnessControllers.length < 6 ? _addWitnessField : null)
+                              : () => _removeWitnessField(index),
+                          color: index == 0 && _witnessControllers.length >= 6
+                              ? Colors.grey
+                              : null,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildSubmitButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _isUploading
+            ? null
+            : () async {
+              if (_formKey.currentState!.validate()) {
+                try {
+                  final User? currentUser = FirebaseAuth.instance.currentUser;
+                  if (currentUser == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('You must be logged in to report an incident')),
+                    );
+                    return;
+                  }
+
+                  setState(() => _isUploading = true);
+
+                  // Show upload progress dialog
+                  if (_attachedFiles.isNotEmpty) {
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (BuildContext dialogContext) {
+                        // Store the dialog context
+                        _uploadDialogContext = dialogContext;
+                        return WillPopScope(
+                          onWillPop: () async {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Please wait while files are uploading...'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                            return false;
+                          },
+                          child: StatefulBuilder(
+                            builder: (dialogContext, setDialogState) {
+                              return AlertDialog(
+                                title: Text('Uploading Files'),
+                                content: SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Please wait while your files are being uploaded...',
+                                        style: TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                      SizedBox(height: 12),
+                                      ValueListenableBuilder<Map<String, double>>(
+                                        valueListenable: _uploadProgressNotifier,
+                                        builder: (context, progress, _) {
+                                          return Column(
+                                            children: progress.entries.map((entry) {
+                                              return Padding(
+                                                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        Expanded(
+                                                          child: Text(
+                                                            entry.key,
+                                                            maxLines: 1,
+                                                            overflow: TextOverflow.ellipsis,
+                                                            style: TextStyle(fontSize: 12),
+                                                          ),
+                                                        ),
+                                                        Text(
+                                                          '${(entry.value * 100).toStringAsFixed(0)}%',
+                                                          style: TextStyle(fontSize: 12),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    SizedBox(height: 4),
+                                                    LinearProgressIndicator(
+                                                      value: entry.value,
+                                                      backgroundColor: Colors.grey.shade200,
+                                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade300),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            }).toList(),
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    );
+                  }
+
+                  // Upload files and save incident
+                  List<String> fileUrls = await _uploadFiles();
+                  await _saveIncident(fileUrls);
+
+                  // Close the upload progress dialog if it's open
+                  if (_uploadDialogContext != null) {
+                    Navigator.of(_uploadDialogContext!).pop();
+                    _uploadDialogContext = null;  // Clear the stored context
+                  }
+
+                  setState(() => _isUploading = false);
+                } catch (e) {
+                  // Close dialog even on error
+                  if (_uploadDialogContext != null) {
+                    Navigator.of(_uploadDialogContext!).pop();
+                    _uploadDialogContext = null;
+                  }
+                  
+                  setState(() => _isUploading = false);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error submitting incident: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+        style: ElevatedButton.styleFrom(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
+          ),
+          backgroundColor: Colors.blue.shade400,
+          foregroundColor: Colors.white,
+          elevation: 2,
+          minimumSize: Size(double.infinity, 45),
+        ),
+        child: Text(
+          'Submit',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
       ),
@@ -1358,39 +1869,55 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
           .map((controller) => controller.text.trim())
           .where((name) => name.isNotEmpty)
           .join(', ');
+          
+      // Get all witness names from the controllers and join them
+      String witnessNames = _witnessControllers
+          .map((controller) => controller.text.trim())
+          .where((name) => name.isNotEmpty)
+          .join(', ');
 
       // Create incident document
       await _firestore.collection('incidents').add({
         'userId': currentUser.uid,
         'userEmail': currentUser.email,
-        'title': _selectedIncidentType == 'Other' ? _otherIncidentTypeController.text : _selectedIncidentType,
+        'title': _titleController.text,
         'description': _descriptionController.text,
         'aiSummary': _aiSummaryController.text,
         'severity': _severityController.text,
         'department': _selectedDepartment,
         'state': _selectedState,
+        'district': _selectedDistrict,
         'location': _locationController.text,
-        'witnesses': _witnessesController.text,
+        'witnesses': witnessNames,
         'attachments': fileUrls,
         'timestamp': FieldValue.serverTimestamp(),
         'status': 'Pending',
-        'officerName': officerNames,  // Add the officer names here
+        'officerName': officerNames,
+        'incidentDate': _incidentDate?.millisecondsSinceEpoch,
+        'incidentTime': _incidentTime?.format(context),
       });
 
       // Clear all form fields after successful submission
       setState(() {
-        _selectedIncidentType = null;
-        _otherIncidentTypeController.clear();
+        _titleController.clear();
         _descriptionController.clear();
         _aiSummaryController.clear();
         _severityController.clear();
         _selectedDepartment = 'ULB';
         _selectedState = null;
+        _selectedDistrict = null;
         _locationController.clear();
-        _witnessesController.clear();
+        _incidentDate = null;
+        _incidentTime = null;
         _attachedFiles.clear();
+        
         // Clear officer name controllers
         for (var controller in _nameControllers) {
+          controller.clear();
+        }
+        
+        // Clear witness controllers
+        for (var controller in _witnessControllers) {
           controller.clear();
         }
       });
@@ -1404,11 +1931,8 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
           ),
         );
 
-        // Get the MainScreen state and set index to 0 (home page)
-        final mainScreenState = context.findAncestorStateOfType<MainScreenState>();
-        if (mainScreenState != null) {
-          mainScreenState.setIndex(0); // Switch to home page
-        }
+        // Navigate back to the home page
+        Navigator.pop(context); // This will return to MainScreen
       }
     } catch (e) {
       print('Error saving incident: $e');
@@ -1423,234 +1947,209 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
     }
   }
 
-  Future<void> _generateAISummary() async {
-    // Check if name is provided
-    if (_nameControllers.any((controller) => controller.text.isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please provide all name fields first')),
-      );
-      return;
-    }
+  // Update the _buildProfileIncompleteMessage method
+  Widget _buildProfileIncompleteMessage() {
+    // First check if status changed since page load
+    _checkLatestProfileStatus();
     
-    // Check if date is provided
-    if (_incidentDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please provide the incident date first')),
-      );
-      return;
-    }
-    
-    // Check if description is provided
-    if (_descriptionController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please provide incident description first')),
-      );
-      return;
-    }
-
-    setState(() {
-      _isGeneratingAI = true;
-    });
-
-    try {
-      // Initialize Firebase Vertex AI
-      final model = FirebaseVertexAI.instance.generativeModel(model: 'gemini-2.0-flash');
-      
-      // Create a more comprehensive prompt that includes name and date
-      final prompt = [
-        Content.text(
-          "Analyze the following corruption incident report:\n\n" +
-          "Reporter's Name: ${_nameControllers.map((controller) => controller.text).join(', ')}\n" +
-          "Incident Date: ${_incidentDate!.toIso8601String()}\n" +
-          "Description: ${_descriptionController.text}\n\n" +
-          "Please provide:\n" +
-          "1. A concise summary of the incident (2-3 sentences)\n" +
-          "2. Assess the severity level (Low, Moderate, High, or Critical)\n" +
-          "Format your response as:\n" +
-          "SUMMARY: [your summary here]\n" +
-          "SEVERITY: [severity level]"
-        )
-      ];
-      
-      // Generate content with the enhanced prompt
-      final response = await model.generateContent(prompt);
-      final responseText = response.text ?? '';
-      
-      // Parse the response to extract summary and severity
-      String summary = '';
-      String severity = '';
-      
-      if (responseText.contains('SUMMARY:') && responseText.contains('SEVERITY:')) {
-        final summaryMatch = RegExp(r'SUMMARY:(.*?)(?=SEVERITY:|$)', dotAll: true).firstMatch(responseText);
-        final severityMatch = RegExp(r'SEVERITY:(.*?)(?=$)', dotAll: true).firstMatch(responseText);
-        
-        if (summaryMatch != null) {
-          summary = summaryMatch.group(1)?.trim() ?? '';
-        }
-        
-        if (severityMatch != null) {
-          severity = severityMatch.group(1)?.trim().toLowerCase() ?? '';
-          // Normalize severity to one of the expected values
-          if (severity.contains('low')) {
-            severity = 'low';
-          } else if (severity.contains('moderate')) {
-            severity = 'moderate';
-          } else if (severity.contains('high')) {
-            severity = 'high';
-          } else if (severity.contains('critical')) {
-            severity = 'critical';
-          } else {
-            severity = 'low'; // Default to low if unclear
-          }
-        }
-      } else {
-        // Fallback if the AI doesn't follow the format
-        summary = responseText.trim();
-        severity = 'low'; // Default to low
-      }
-
-      setState(() {
-        _aiSummaryController.text = summary;
-        _severityController.text = severity;
-        
-        // Update the departments list based on the new severity
-        _departmentsBasedOnSeverity = _getDepartmentsForSeverity(severity);
-        
-        // Reset the department selection when severity changes
-        _departmentController.text = '';
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error generating AI summary: ${e.toString()}')),
-      );
-    } finally {
-      setState(() {
-        _isGeneratingAI = false;
-      });
-    }
-  }
-
-  List<String> _getDepartmentsForSeverity(String severity) {
-    // Base departments that should be available for all severity levels
-    List<String> departments = [
-      'State Vigilance & Anti-Corruption Bureau',
-      'Urban Local Bodies (ULB) / Municipal Corporations',
-      'Chief Vigilance Officers (CVO) of Respective PSUs'
-    ];
-    
-    // Only add Central Government option for high and critical severity
-    if (severity.toLowerCase() == 'high' || severity.toLowerCase() == 'critical') {
-      departments.insert(0, 'Central Vigilance Commission (CVC)');
-    }
-    
-    return departments;
-  }
-
-  Widget _buildDepartmentField() {
-    // Update the departments list when severity changes
-    _departmentsBasedOnSeverity = _getDepartmentsForSeverity(_severityController.text);
-    
-    // If severity is empty, show a disabled field with a message
-    if (_severityController.text.isEmpty) {
-      return Container(
-        margin: EdgeInsets.only(bottom: 16),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Icon(
+              Icons.person_outline,
+              size: 80,
+              color: Colors.blue.shade200,
+            ),
+            SizedBox(height: 24),
             Text(
-              'Department',
+              'Profile Incomplete',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
               ),
             ),
-            SizedBox(height: 8),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 15),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(4),
-                color: Colors.grey[200],
+            SizedBox(height: 16),
+            Text(
+              'Please complete your profile before submitting an incident report. This information helps us verify your identity and follow up on your report.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade700,
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Generate summary first to see departments',
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                  Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
-                ],
+            ),
+            SizedBox(height: 40),
+            ElevatedButton(
+              onPressed: () {
+                // Try to refresh status first
+                _checkLatestProfileStatus();
+                
+                // If status changed to complete, rebuild page
+                if (_isProfileComplete) {
+                  setState(() {});
+                  return;
+                }
+
+                // Otherwise use the callback if available
+                if (widget.onRequestProfileTab != null) {
+                  print('Requesting navigation to profile tab');
+                  widget.onRequestProfileTab!();
+                  Navigator.pop(context);
+                } else {
+                  // Fallback: just navigate back
+                  Navigator.pop(context, {'goToProfile': true});
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                'Go to Profile',
+                style: TextStyle(
+                  fontSize: 18,
+                ),
               ),
             ),
           ],
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    // If severity is not empty, show a selectable dropdown
+  // Fix the _buildSmoothDropdown method to handle null values and duplicates
+  Widget _buildSmoothDropdown({
+    required String label,
+    required String? value,
+    required List<String> items,
+    required Function(String?) onChanged,
+    required IconData prefixIcon,
+  }) {
+    // Check if value exists in items list
+    final valueExists = value == null ? true : items.contains(value);
+    
+    // If value doesn't exist in items, set to null to avoid assertion error
+    final effectiveValue = valueExists ? value : null;
+    
     return Container(
       margin: EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Department',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[700],
-            ),
-          ),
-          SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.blue),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: ButtonTheme(
-                alignedDropdown: true,
-                child: DropdownButton<String>(
-                  value: _departmentController.text.isNotEmpty && _departmentsBasedOnSeverity.contains(_departmentController.text) 
-                      ? _departmentController.text 
-                      : null,
-                  hint: Text('Select a department'),
-                  isExpanded: true,
-                  icon: Icon(Icons.arrow_drop_down_circle, color: Colors.blue),
-                  iconSize: 24,
-                  elevation: 16,
-                  style: TextStyle(color: Colors.black, fontSize: 16),
-                  dropdownColor: Colors.white,
-                  items: _departmentsBasedOnSeverity.map((String department) {
-                    return DropdownMenuItem<String>(
-                      value: department,
-                      child: Text(department),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _departmentController.text = newValue ?? '';
-                    });
-                  },
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            _severityController.text.toLowerCase() == 'high' || _severityController.text.toLowerCase() == 'critical'
-                ? 'All departments available for ${_severityController.text.toLowerCase()} severity'
-                : 'Central departments not available for ${_severityController.text.toLowerCase()} severity',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-              fontStyle: FontStyle.italic,
-            ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: Offset(0, 2),
           ),
         ],
       ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Material(
+          color: Colors.transparent,
+          child: DropdownButtonHideUnderline(
+            child: DropdownButtonFormField<String>(
+              value: effectiveValue,
+              icon: Icon(Icons.arrow_drop_down, color: Colors.blue.shade700),
+              decoration: InputDecoration(
+                prefixIcon: Icon(prefixIcon, color: Colors.blue.shade700),
+                labelText: label,
+                labelStyle: TextStyle(color: Colors.grey.shade700),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+              ),
+              dropdownColor: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              menuMaxHeight: 300,
+              isExpanded: true,
+              elevation: 8,
+              style: TextStyle(
+                color: Colors.black87,
+                fontSize: 16,
+              ),
+              validator: (value) => value == null ? 'Please select $label' : null,
+              onChanged: onChanged,
+              items: items.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black87,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+      ),
     );
+  }
+
+  // Add a helper function for smoother text fields
+  Widget _buildSmoothTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon, color: Colors.blue.shade700),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.grey.shade50,
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        ),
+        validator: validator,
+      ),
+    );
+  }
+
+  void _addWitnessField() {
+    if (_witnessControllers.length < 6) {
+      setState(() {
+        _witnessControllers.add(TextEditingController());
+      });
+    }
+  }
+
+  void _removeWitnessField(int index) {
+    if (_witnessControllers.length > 1) {
+      setState(() {
+        _witnessControllers.removeAt(index);
+      });
+    }
   }
 } 

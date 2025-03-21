@@ -30,11 +30,6 @@
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
-        },
-        {
-            "src": "favicon.png",
-            "sizes": "64x64",
-            "type": "image/png"
         }
     ]
 }
