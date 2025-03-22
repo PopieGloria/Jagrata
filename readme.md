@@ -53,10 +53,20 @@ Ensure you have the following installed:
    ```
 
 ## 📷 **Screenshots**  
+ ![WhatsApp Image 2025-03-14 at 11 00 38](https://github.com/user-attachments/assets/516e0c10-e450-4509-a16f-ef47fd0a2f1b)
+![WhatsApp Image 2025-03-14 at 11 02 31](https://github.com/user-attachments/assets/d03c8a21-134c-4877-8b96-ef558240917b)
+![WhatsApp Image 2025-03-14 at 11 00 38 (1)](https://github.com/user-attachments/assets/d7497b93-7f46-4642-89ce-b5145aff8a57)
+![WhatsApp Image 2025-03-14 at 11 00 37 (1)](https://github.com/user-attachments/assets/7e578172-1fc6-43e2-bb3f-995a44e1a115)
+![WhatsApp Image 2025-03-14 at 09 44 17 (1)](https://github.com/user-attachments/assets/8a39ad7a-b3df-4204-acdc-a10a1e6c7f3a)
 
-| User Interface  | Admin Panel  |
-|---|---|
-| ![User Dashboard](screenshots/user_dashboard.png) | ![Admin Panel](screenshots/admin_panel.png) |
+![WhatsApp Image 2025-03-14 at 09 39 00](https://github.com/user-attachments/assets/89721d3e-f8b4-4a0d-9fb8-7b879cd884bb)
+![WhatsApp Image 2025-03-14 at 09 39 00 (1)](https://github.com/user-attachments/assets/2bf99eda-e207-4064-a1ad-90aa34cb516a)
+![WhatsApp Image 2025-03-14 at 09 39 00 (2)](https://github.com/user-attachments/assets/9bddb6f2-6186-4f1a-8c57-a0d4239bb86e)
+
+![Screenshot_20250320-093128](https://github.com/user-attachments/assets/0ca84295-b689-4e4c-9b8e-968ffb0c2ebc)
+![Screenshot_20250320-093209](https://github.com/user-attachments/assets/d4080027-d90f-474d-8e4f-af09526c4b78)
+![Screenshot_20250320-093326](https://github.com/user-attachments/assets/c8810a00-f804-4bbb-848b-a874a566a5bc)
+
 
 ## 📌 **Future Enhancements**  
 
