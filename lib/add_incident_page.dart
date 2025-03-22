@@ -1156,30 +1156,42 @@ final severityPrompt = [
                 items: [
                   DropdownMenuItem(
                     value: 'ULB', 
-                    child: Text(
-                      'Urban Local Bodies (ULB)',
-                      overflow: TextOverflow.ellipsis,
+                    child: Flexible(
+                      child: Text(
+                        'Urban Local Bodies (ULB)',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 14),
+                      ),
                     )
                   ),
                   DropdownMenuItem(
                     value: 'Central Vigilance Commission', 
-                    child: Text(
-                      'Central Vigilance Commission',
-                      overflow: TextOverflow.ellipsis,
+                    child: Flexible(
+                      child: Text(
+                        'Central Vigilance Commission',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 14),
+                      ),
                     )
                   ),
                   DropdownMenuItem(
                     value: 'State Vigilance & Anti-Corruption Bureau', 
-                    child: Text(
-                      'State Vigilance & Anti-Corruption Bureau',
-                      overflow: TextOverflow.ellipsis,
+                    child: Flexible(
+                      child: Text(
+                        'State Vigilance & Anti-Corruption Bureau',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 14),
+                      ),
                     )
                   ),
                   DropdownMenuItem(
                     value: 'Chief Vigilance Officers', 
-                    child: Text(
-                      'Chief Vigilance Officers (CVO) of Respective PSUs',
-                      overflow: TextOverflow.ellipsis,
+                    child: Flexible(
+                      child: Text(
+                        'Chief Vigilance Officers (CVO) of Respective PSUs',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 14),
+                      ),
                     )
                   ),
                 ],
@@ -1219,6 +1231,29 @@ final severityPrompt = [
                 }
                 return null;
               },
+            ),
+            
+            // Add multilanguage support text
+            Padding(
+              padding: const EdgeInsets.only(left: 12, bottom: 16),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.language,
+                    size: 14,
+                    color: Colors.blue.shade700,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    'You can describe the incident in your native language',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade700,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
             ),
             
             // Add the generate summary button
@@ -1982,7 +2017,7 @@ final severityPrompt = [
     );
   }
 
-  // Fix the _buildSmoothDropdown method to handle null values and duplicates
+  // Fix the _buildSmoothDropdown method to handle overflow and null values
   Widget _buildSmoothDropdown({
     required String label,
     required String? value,
@@ -1995,6 +2030,9 @@ final severityPrompt = [
     
     // If value doesn't exist in items, set to null to avoid assertion error
     final effectiveValue = valueExists ? value : null;
+    
+    // Check if this is the corruption type dropdown
+    final bool isCorruptionType = label == 'Type of Corruption';
     
     return Container(
       margin: EdgeInsets.only(bottom: 16),
@@ -2009,49 +2047,107 @@ final severityPrompt = [
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Material(
-          color: Colors.transparent,
-          child: DropdownButtonHideUnderline(
-            child: DropdownButtonFormField<String>(
-              value: effectiveValue,
-              icon: Icon(Icons.arrow_drop_down, color: Colors.blue.shade700),
-              decoration: InputDecoration(
-                prefixIcon: Icon(prefixIcon, color: Colors.blue.shade700),
-                labelText: label,
-                labelStyle: TextStyle(color: Colors.grey.shade700),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                filled: true,
-                fillColor: Colors.grey.shade50,
-              ),
-              dropdownColor: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              menuMaxHeight: 300,
-              isExpanded: true,
-              elevation: 8,
-              style: TextStyle(
-                color: Colors.black87,
-                fontSize: 16,
-              ),
-              validator: (value) => value == null ? 'Please select $label' : null,
-              onChanged: onChanged,
-              items: items.map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black87,
-                    ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Material(
+              color: Colors.transparent,
+              child: DropdownButtonHideUnderline(
+                child: DropdownButtonFormField<String>(
+                  value: effectiveValue,
+                  icon: Icon(Icons.arrow_drop_down, color: Colors.blue.shade700),
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(prefixIcon, color: Colors.blue.shade700),
+                    labelText: label,
+                    labelStyle: TextStyle(color: Colors.grey.shade700),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
                   ),
-                );
-              }).toList(),
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  menuMaxHeight: 300,
+                  isExpanded: true,
+                  elevation: 8,
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontSize: 16,
+                  ),
+                  validator: (value) => value == null ? 'Please select $label' : null,
+                  onChanged: onChanged,
+                  items: items.map<DropdownMenuItem<String>>((String item) {
+                    return DropdownMenuItem<String>(
+                      value: item,
+                      child: Container(
+                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                item,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.black87,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                            if (isCorruptionType)
+                              Container(
+                                width: 30,
+                                child: IconButton(
+                                  icon: Icon(Icons.info_outline, size: 18, color: Colors.blue.shade700),
+                                  padding: EdgeInsets.zero,
+                                  constraints: BoxConstraints(),
+                                  onPressed: () {
+                                    // First call onChanged to make this the selected item
+                                    onChanged(item);
+                                    // Then show info dialog after a short delay
+                                    Future.delayed(Duration(milliseconds: 100), () {
+                                      _showCorruptionTypeInfo(item);
+                                    });
+                                  },
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
             ),
           ),
-        ),
+          if (isCorruptionType && value != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 12, top: 4),
+              child: TextButton.icon(
+                onPressed: () => _showCorruptionTypeInfo(value),
+                icon: Icon(Icons.info_outline, size: 16, color: Colors.blue.shade700),
+                label: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
+                  child: Text(
+                    'Learn more about ${value}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue.shade700,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  minimumSize: Size.zero,
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -2140,5 +2236,105 @@ final severityPrompt = [
     
     // Default if no patterns found
     return 'Moderate';
+  }
+
+  // Add this method to show corruption type information
+  void _showCorruptionTypeInfo(String type) {
+    Map<String, Map<String, String>> corruptionInfo = {
+      'Bribery': {
+        'title': 'Bribery',
+        'description': 'The offering, giving, receiving, or soliciting of something of value to influence an official act. This includes payments to government officials, kickbacks in procurement, or payments to obtain services.',
+        'examples': '- Paying officials to expedite applications or permits\n- Offering money to avoid legal penalties\n- Demanding unofficial payments for public services'
+      },
+      'Embezzlement': {
+        'title': 'Embezzlement',
+        'description': 'The theft or misappropriation of funds placed in one\'s trust. This involves taking government or organizational funds for personal use.',
+        'examples': '- Officials diverting public funds to personal accounts\n- Misuse of departmental budgets\n- Creating ghost employees to collect salaries'
+      },
+      'Fraud': {
+        'title': 'Fraud',
+        'description': 'Using deception to acquire money, assets, or services from the government or public. This includes false claims, document forgery, or manipulating processes for gain.',
+        'examples': '- Submitting false documentation for benefits\n- Manipulating tender processes\n- Falsifying records to show compliance'
+      },
+      'Abuse of Power': {
+        'title': 'Abuse of Power',
+        'description': 'When officials use their authority for personal gain or to provide unfair advantages to others. This involves decisions that provide selective benefits.',
+        'examples': '- Granting contracts to relatives or associates\n- Using government resources for personal purposes\n- Threatening people to comply with unreasonable demands'
+      },
+      'Nepotism': {
+        'title': 'Nepotism',
+        'description': 'Showing favoritism to family members or close associates in matters of employment, contracts, or benefits.',
+        'examples': '- Hiring relatives without proper qualification\n- Giving promotions based on relationships not merit\n- Selecting family businesses for government contracts'
+      },
+      'Other': {
+        'title': 'Other Types ',
+        'description': 'Other forms may include extortion, trading in influence, conflict of interest, or any other corrupt practice not covered in the main categories.',
+        'examples': '- Extortion: Forcing payment through threats\n- Conflict of interest: Officials making decisions where they have personal interest\n- Money laundering: Disguising origins of illicitly obtained money'
+      },
+    };
+
+    final info = corruptionInfo[type] ?? {
+      'title': 'Information Unavailable',
+      'description': 'Details about this type of corruption are not available.',
+      'examples': 'Please select a recognized type or specify details in your description.'
+    };
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.blue.shade700),
+              SizedBox(width: 10),
+              Text(info['title'] ?? 'Information'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'What is it?',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.blue.shade800,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  info['description'] ?? '',
+                  style: TextStyle(fontSize: 14),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Common Examples:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.blue.shade800,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  info['examples'] ?? '',
+                  style: TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 } 
