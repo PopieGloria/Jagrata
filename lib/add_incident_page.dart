@@ -49,10 +49,10 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
   ];
 
   final List<String> predefinedDepartments = [
-    'Central Vigilance Commission (CVC)',
-    'State Vigilance & Anti-Corruption Bureau',
-    'Urban Local Bodies (ULB)',
-    'Chief Vigilance Officers (CVO) of Respective PSUs',
+    'ULB',
+    'Central Vigilance Commission',
+    'State Vigilance & Anti-Corruption Bureau', 
+    'Chief Vigilance Officers'
   ];
 
   late final GenerativeModel _model;
@@ -1126,83 +1126,16 @@ final severityPrompt = [
               ),
             
             // Department dropdown - replace with new implementation
-            Container(
-              margin: EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: DropdownButtonFormField<String>(
-                value: _selectedDepartment,
-                decoration: InputDecoration(
-                  labelText: 'Department',
-                  prefixIcon: Icon(Icons.business, color: Colors.blue.shade700),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                ),
-                isExpanded: true,
-                items: [
-                  DropdownMenuItem(
-                    value: 'ULB', 
-                    child: Flexible(
-                      child: Text(
-                        'Urban Local Bodies (ULB)',
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 14),
-                      ),
-                    )
-                  ),
-                  DropdownMenuItem(
-                    value: 'Central Vigilance Commission', 
-                    child: Flexible(
-                      child: Text(
-                        'Central Vigilance Commission',
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 14),
-                      ),
-                    )
-                  ),
-                  DropdownMenuItem(
-                    value: 'State Vigilance & Anti-Corruption Bureau', 
-                    child: Flexible(
-                      child: Text(
-                        'State Vigilance & Anti-Corruption Bureau',
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 14),
-                      ),
-                    )
-                  ),
-                  DropdownMenuItem(
-                    value: 'Chief Vigilance Officers', 
-                    child: Flexible(
-                      child: Text(
-                        'Chief Vigilance Officers (CVO) of Respective PSUs',
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 14),
-                      ),
-                    )
-                  ),
-                ],
-                onChanged: (newValue) {
-                  setState(() {
-                    _selectedDepartment = newValue;
-                  });
-                },
-                dropdownColor: Colors.white,
-                icon: Icon(Icons.arrow_drop_down, color: Colors.blue.shade700),
-              ),
+            _buildSmoothDropdown(
+              label: 'Department',
+              value: _selectedDepartment,
+              items: predefinedDepartments,
+              onChanged: (newValue) {
+                setState(() {
+                  _selectedDepartment = newValue;
+                });
+              },
+              prefixIcon: Icons.business,
             ),
             
             // Title field with smooth animation
