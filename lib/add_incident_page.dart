@@ -269,47 +269,52 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
 
     try {
       // First prompt for structured analysis
-      final analysisPrompt = [
-        Content.text(
-          '''Generate a formal and structured summary of this incident report. Use markdown formatting:
-          - Use # for main headings
-          - Use ** for bold important points
-          - Use proper paragraphs with line breaks
+    final analysisPrompt = [
+  Content.text(
+    '''Generate a formal and structured summary of the following incident report. 
+    DO NOT use markdown formatting like **, ##, or any other special formatting characters.
+    Don't use ## for headings as well. 
+    The output should be in plaintext only with regular paragraph formatting and line breaks.
+    Don't use any special characters like * or # for headings.
+    
+    Ensure that the summary is concise and clearly presents the key details in plain text. 
+    If the report is in a non-English language, translate it into English before summarizing. 
+    
+    Include the following sections with plain text headings:
 
-          Include the following sections:
-          1. # Introduction
-             - Type of corruption and when it occurred
-          2. # Detailed Analysis
-             - Comprehensive explanation with **key points highlighted**
-          3. # Impact Assessment
-             - Severity analysis and potential consequences
-          4. # Contextual Information
-             - Relevant details about department/officials
+    Introduction:
+    (Type of corruption involved and the time it occurred)
 
-          Incident Description:
-          ${_descriptionController.text}'''
-        )
-      ];
+    Contextual Information:
+    (Relevant details about the department, officials, or individuals involved)
 
-      final analysisResponse = await _model.generateContent(analysisPrompt);
-      
-      // Second prompt specifically for severity classification
-      final severityPrompt = [
-        Content.text(
-          '''Based on the following incident description, classify the severity as either "Low", "Moderate", "High", or "Critical". Consider these factors:
-          - Financial impact
-          - Number of people affected
-          - Level of officials involved
-          - Systemic nature of corruption
-          - Potential damage to public trust
-          - Impact on government services
-          
-          Respond with ONLY ONE of these four severity levels.
-          
-          Incident Description:
-          ${_descriptionController.text}'''
-        )
-      ];
+    Impact Assessment:
+    (Analysis of the severity and potential consequences)
+
+    Detailed Explanation:
+    (A brief yet comprehensive description of the incident, summarizing key points clearly)
+
+    Incident Description:
+    ${_descriptionController.text}
+    '''
+  )
+];
+
+final analysisResponse = await _model.generateContent(analysisPrompt);
+final extractedSeverity = extractSeverityFromResponse(analysisResponse.text); // Function to extract severity from analysis
+
+// Second prompt for severity classification, ensuring it matches the analysis response
+final severityPrompt = [
+  Content.text(
+    '''Based on the following incident description, classify the severity as either "Low", "Moderate", "High", or "Critical".  
+    Respond with ONLY ONE of these four severity levels.
+
+    Incident Description:
+    ${_descriptionController.text}
+    '''
+  )
+];
+
 
       final severityResponse = await _model.generateContent(severityPrompt);
       
@@ -410,17 +415,6 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
                 ),
               ),
             ],
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.only(top: 4, left: 8),
-          child: Text(
-            'Supports markdown formatting',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-              fontStyle: FontStyle.italic,
-            ),
           ),
         ),
       ],
@@ -806,15 +800,6 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
               SizedBox(height: 24),
               _buildAttachmentSection(),
               
-              // AI summary section
-              if (_isGeneratingSummary || _aiSummaryController.text.isNotEmpty)
-                Column(
-                  children: [
-                    SizedBox(height: 24),
-                    _buildAISummarySection(),
-                  ],
-                ),
-                
               // Add padding before the submit button
               SizedBox(height: 40),
               
@@ -1238,8 +1223,44 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
             
             // Add the generate summary button
             SizedBox(height: 16),
-            
             _buildGenerateButton(),
+            
+            // Display AI summary and severity below the generate button
+            SizedBox(height: 16),
+            if (_aiSummaryController.text.isNotEmpty || _isGeneratingSummary) ...[
+              _buildAISummaryField(),
+              SizedBox(height: 12),
+            ],
+            
+            // Add the severity field display
+            if (_severityController.text.isNotEmpty) ...[
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _getSeverityColor(_severityController.text).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _getSeverityColor(_severityController.text).withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: _getSeverityColor(_severityController.text),
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'Severity: ${_severityController.text}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: _getSeverityColor(_severityController.text),
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -1447,66 +1468,6 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-  
-  Widget _buildAISummarySection() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'AI Summary',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue.shade800,
-              ),
-            ),
-            SizedBox(height: 16),
-            
-            // AI summary field
-            _buildAISummaryField(),
-            
-            // Add the severity field display
-            if (_severityController.text.isNotEmpty) ...[
-              SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _getSeverityColor(_severityController.text).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: _getSeverityColor(_severityController.text).withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      color: _getSeverityColor(_severityController.text),
-                    ),
-                    SizedBox(width: 12),
-                    Text(
-                      'Severity: ${_severityController.text}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: _getSeverityColor(_severityController.text),
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -2151,5 +2112,33 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
         _witnessControllers.removeAt(index);
       });
     }
+  }
+
+  // Add the missing method to extract severity from AI response
+  String extractSeverityFromResponse(String? responseText) {
+    if (responseText == null || responseText.isEmpty) {
+      return 'Moderate'; // Default fallback
+    }
+    
+    // Try to find severity indicators in the response
+    final lowPatterns = ['low severity', 'low impact', 'minor', 'minimal'];
+    final moderatePatterns = ['moderate severity', 'moderate impact', 'medium'];
+    final highPatterns = ['high severity', 'high impact', 'severe', 'major'];
+    final criticalPatterns = ['critical severity', 'critical impact', 'extreme'];
+    
+    final lowerCaseResponse = responseText.toLowerCase();
+    
+    if (criticalPatterns.any((pattern) => lowerCaseResponse.contains(pattern))) {
+      return 'Critical';
+    } else if (highPatterns.any((pattern) => lowerCaseResponse.contains(pattern))) {
+      return 'High';
+    } else if (moderatePatterns.any((pattern) => lowerCaseResponse.contains(pattern))) {
+      return 'Moderate';
+    } else if (lowPatterns.any((pattern) => lowerCaseResponse.contains(pattern))) {
+      return 'Low';
+    }
+    
+    // Default if no patterns found
+    return 'Moderate';
   }
 } 
