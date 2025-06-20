@@ -38,10 +38,10 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'YOUR-ACTUAL-API-KEY',
-    appId: 'YOUR-ACTUAL-APP-ID',
-    messagingSenderId: 'YOUR-ACTUAL-SENDER-ID',
-    projectId: 'YOUR-ACTUAL-PROJECT-ID',
-    storageBucket: 'YOUR-ACTUAL-BUCKET.appspot.com',
+    apiKey: 'AIzaSyDx0biq4RvpF8vAZupQlrDvCBDH16-Ux-A',
+    appId: '1:463585740780:android:YOUR_ANDROID_APP_ID',
+    messagingSenderId: '463585740780',
+    projectId: 'jagrata-1e8de',
+    storageBucket: 'jagrata-1e8de.firebasestorage.app',
   );
 } 
