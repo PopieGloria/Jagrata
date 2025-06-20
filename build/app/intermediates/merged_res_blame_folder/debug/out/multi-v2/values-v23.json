@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.nav.jagrata.app-mergeDebugResources-53:/values-v23/values-v23.xml",
+            "outputFile": "com.arf.jagrata.app-mergeDebugResources-53:/values-v23/values-v23.xml",
             "map": [
                 {
-                    "source": "/Users/arfan/.gradle/caches/transforms-3/7c4de87e5a23ebeac1518535201be3aa/transformed/appcompat-1.1.0/res/values-v23/values-v23.xml",
+                    "source": "/Users/navaneeth/.gradle/caches/transforms-3/a20ace398591ec06d9caaa130d282c29/transformed/appcompat-1.1.0/res/values-v23/values-v23.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,20,34,35,36,37,41,42,43,44",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4",

@@ -29,17 +29,17 @@ if (flutterVersionName == null) {
 }
 
 android {
-    namespace "com.nav.jagrata"
+    namespace "com.arf.jagrata"
     compileSdkVersion 35
     ndkVersion flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '11'
     }
 
     sourceSets {
@@ -47,7 +47,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.nav.jagrata"
+        applicationId "com.arf.jagrata"
         minSdkVersion 23
         targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
@@ -70,6 +70,5 @@ dependencies {
     implementation 'com.google.firebase:firebase-analytics'
     implementation 'com.google.firebase:firebase-auth'
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.0'
-    implementation("com.google.firebase:firebase-vertexai")
     implementation 'androidx.multidex:multidex:2.0.1'
 }

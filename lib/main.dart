@@ -5,7 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'welcome_page.dart';
 import 'add_incident_page.dart';
 import 'profile_page.dart';
-import 'package:firebase_vertexai/firebase_vertexai.dart';
 import 'firebase_options.dart';
 import 'home_page.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;

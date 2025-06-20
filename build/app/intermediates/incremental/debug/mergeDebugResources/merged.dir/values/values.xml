@@ -437,16 +437,16 @@
     <string name="fallback_menu_item_copy_link">Copy link</string>
     <string name="fallback_menu_item_open_in_browser">Open in browser</string>
     <string name="fallback_menu_item_share_link">Share link</string>
-    <string name="gcm_defaultSenderId" translatable="false">265788001372</string>
-    <string name="google_api_key" translatable="false">AIzaSyAEnVbjycJeWKFpqNRLlQ4hUzFy7j4UmN0</string>
-    <string name="google_app_id" translatable="false">1:265788001372:android:538c57cae733908925aa99</string>
-    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyAEnVbjycJeWKFpqNRLlQ4hUzFy7j4UmN0</string>
-    <string name="google_storage_bucket" translatable="false">jagrata-420.firebasestorage.app</string>
+    <string name="gcm_defaultSenderId" translatable="false">463585740780</string>
+    <string name="google_api_key" translatable="false">AIzaSyBf4UU9GXYD69Dyd3qCfp4DjGj_AkYb-no</string>
+    <string name="google_app_id" translatable="false">1:463585740780:android:546b0447d7d582066e22c9</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyBf4UU9GXYD69Dyd3qCfp4DjGj_AkYb-no</string>
+    <string name="google_storage_bucket" translatable="false">jagrata-1e8de.firebasestorage.app</string>
     <string name="not_set">Not set</string>
     <string name="preference_copied">
         \"<ns1:g example="Version 1.1" id="summary">%1$s</ns1:g>\" copied to clipboard.
     </string>
-    <string name="project_id" translatable="false">jagrata-420</string>
+    <string name="project_id" translatable="false">jagrata-1e8de</string>
     <string name="search_menu_title">Search</string>
     <string name="status_bar_notification_info_overflow">999+</string>
     <string name="summary_collapsed_preference_list"><ns1:g id="current_items">%1$s</ns1:g>, <ns1:g id="added_items">%2$s</ns1:g></string>
