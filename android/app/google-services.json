@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "463585740780",
-    "project_id": "jagrata-1e8de",
-    "storage_bucket": "jagrata-1e8de.firebasestorage.app"
+    "project_number": "265788001372",
+    "project_id": "jagrata-420",
+    "storage_bucket": "jagrata-420.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:463585740780:android:546b0447d7d582066e22c9",
+        "mobilesdk_app_id": "1:265788001372:android:538c57cae733908925aa99",
         "android_client_info": {
-          "package_name": "com.arf.jagrata"
+          "package_name": "com.nav.jagrata"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBf4UU9GXYD69Dyd3qCfp4DjGj_AkYb-no"
+          "current_key": "AIzaSyAEnVbjycJeWKFpqNRLlQ4hUzFy7j4UmN0"
         }
       ],
       "services": {

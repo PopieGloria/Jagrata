@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:firebase_vertexai/firebase_vertexai.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -54,10 +55,7 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
     'Chief Vigilance Officers'
   ];
 
-  // Gemini API configuration
-  static const String _geminiApiKey = 'AIzaSyAQbpxfPIHqWWrI7YCsoaqY1C0mrnIl25w';
-  static const String _geminiApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-  
+  late final GenerativeModel _model;
   bool _isGeneratingAI = false;
   bool _isGeneratingSummary = false;
 
@@ -145,7 +143,8 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
     // Then check the latest status from shared preferences
     _checkLatestProfileStatus();
     
-    // Gemini API will be called directly via HTTP
+    // Initialize Firebase VertexAI model
+    _model = FirebaseVertexAI.instance.generativeModel(model: 'gemini-1.5-flash');
   }
 
   // Add this method to check the latest profile status
@@ -256,34 +255,6 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
     _locationController.text = '${position.latitude}, ${position.longitude}';
   }
 
-  // Helper function to call Gemini API
-  Future<String> _callGeminiAPI(String prompt) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$_geminiApiUrl?key=$_geminiApiKey'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'contents': [
-            {
-              'parts': [
-                {'text': prompt}
-              ]
-            }
-          ]
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['candidates'][0]['content']['parts'][0]['text'] ?? 'Unable to generate response';
-      } else {
-        throw Exception('API call failed with status: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error calling Gemini API: $e');
-    }
-  }
-
   Future<void> _generateSummary() async {
     if (_descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -298,49 +269,59 @@ class _AddIncidentPageState extends State<AddIncidentPage> {
 
     try {
       // First prompt for structured analysis
-      final analysisPrompt = '''Generate a formal and structured summary of the following incident report. 
-DO NOT use markdown formatting like **, ##, or any other special formatting characters.
-Don't use ## for headings as well. 
-The output should be in plaintext only with regular paragraph formatting and line breaks.
-Don't use any special characters like * or # for headings.
+    final analysisPrompt = [
+  Content.text(
+    '''Generate a formal and structured summary of the following incident report. 
+    DO NOT use markdown formatting like **, ##, or any other special formatting characters.
+    Don't use ## for headings as well. 
+    The output should be in plaintext only with regular paragraph formatting and line breaks.
+    Don't use any special characters like * or # for headings.
+    
+    Ensure that the summary is concise and clearly presents the key details in plain text. 
+    If the report is in a non-English language, translate it into English before summarizing. 
+    
+    Include the following sections with plain text headings:
 
-Ensure that the summary is concise and clearly presents the key details in plain text. 
-If the report is in a non-English language, translate it into English before summarizing. 
+    Introduction:
+    (Type of corruption involved and the time it occurred)
 
-Include the following sections with plain text headings:
+    Contextual Information:
+    (Relevant details about the department, officials, or individuals involved)
 
-Introduction:
-(Type of corruption involved and the time it occurred)
+    Impact Assessment:
+    (Analysis of the severity and potential consequences)
 
-Contextual Information:
-(Relevant details about the department, officials, or individuals involved)
+    Detailed Explanation:
+    (A brief yet comprehensive description of the incident, summarizing key points clearly)
 
-Impact Assessment:
-(Analysis of the severity and potential consequences)
+    Incident Description:
+    ${_descriptionController.text}
+    '''
+  )
+];
 
-Detailed Explanation:
-(A brief yet comprehensive description of the incident, summarizing key points clearly)
+final analysisResponse = await _model.generateContent(analysisPrompt);
+final extractedSeverity = extractSeverityFromResponse(analysisResponse.text); // Function to extract severity from analysis
 
-Incident Description:
-${_descriptionController.text}
-''';
+// Second prompt for severity classification, ensuring it matches the analysis response
+final severityPrompt = [
+  Content.text(
+    '''Based on the following incident description, classify the severity as either "Low", "Moderate", "High", or "Critical".  
+    Respond with ONLY ONE of these four severity levels.
 
-      final analysisResponse = await _callGeminiAPI(analysisPrompt);
+    Incident Description:
+    ${_descriptionController.text}
+    '''
+  )
+];
 
-      // Second prompt for severity classification
-      final severityPrompt = '''Based on the following incident description, classify the severity as either "Low", "Moderate", "High", or "Critical".  
-Respond with ONLY ONE of these four severity levels.
 
-Incident Description:
-${_descriptionController.text}
-''';
-
-      final severityResponse = await _callGeminiAPI(severityPrompt);
+      final severityResponse = await _model.generateContent(severityPrompt);
       
       setState(() {
-        _aiSummaryController.text = analysisResponse;
+        _aiSummaryController.text = analysisResponse.text ?? 'Unable to generate summary';
         // Clean and set the severity
-        String severity = severityResponse
+        String severity = (severityResponse.text ?? 'Moderate')
             .trim()
             .split('\n')[0] // Take first line only
             .replaceAll(RegExp(r'[^a-zA-Z]'), ''); // Remove any special characters

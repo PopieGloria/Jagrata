@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="gcm_defaultSenderId" translatable="false">463585740780</string>
-    <string name="google_api_key" translatable="false">AIzaSyBf4UU9GXYD69Dyd3qCfp4DjGj_AkYb-no</string>
-    <string name="google_app_id" translatable="false">1:463585740780:android:546b0447d7d582066e22c9</string>
-    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyBf4UU9GXYD69Dyd3qCfp4DjGj_AkYb-no</string>
-    <string name="google_storage_bucket" translatable="false">jagrata-1e8de.firebasestorage.app</string>
-    <string name="project_id" translatable="false">jagrata-1e8de</string>
+    <string name="gcm_defaultSenderId" translatable="false">265788001372</string>
+    <string name="google_api_key" translatable="false">AIzaSyAEnVbjycJeWKFpqNRLlQ4hUzFy7j4UmN0</string>
+    <string name="google_app_id" translatable="false">1:265788001372:android:538c57cae733908925aa99</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyAEnVbjycJeWKFpqNRLlQ4hUzFy7j4UmN0</string>
+    <string name="google_storage_bucket" translatable="false">jagrata-420.firebasestorage.app</string>
+    <string name="project_id" translatable="false">jagrata-420</string>
     <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
         
         <item name="android:windowBackground">@drawable/launch_background</item>

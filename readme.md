@@ -37,48 +37,20 @@ Ensure you have the following installed:
    cd jagrata
    ```
 
-2. **Set Up Firebase Configuration**  
-   ```bash
-   # Run the setup script to create Firebase config files from templates
-   ./setup_firebase.sh
-   
-   # Or manually copy template files:
-   # cp lib/firebase_options.template.dart lib/firebase_options.dart
-   # cp lib/firebase_options_web.template.dart lib/firebase_options_web.dart
-   # cp lib/firebase_options_ios.template.dart lib/firebase_options_ios.dart
-   ```
-   
-   **⚠️ Important:** You need to replace the placeholder values in these files with your actual Firebase configuration. See `FIREBASE_SETUP.md` for detailed instructions.
-
-3. **Install Dependencies**  
+2. **Install Dependencies**  
    ```bash
    flutter pub get
    ```
 
-4. **Run the App**  
+3. **Run the App**  
    ```bash
    flutter run
    ```
 
-5. **Deploy Admin Panel** (Optional, for testing)  
+4. **Deploy Admin Panel** (Optional, for testing)  
    ```bash
    vercel deploy
    ```
-
-### **🔐 Security & GitHub Setup**
-
-This repository uses a secure setup to protect Firebase API keys and sensitive configuration:
-
-- **Firebase configuration files** are **not included** in the repository
-- Template files (`.template.dart`) are provided instead
-- Actual configuration files are **automatically ignored** by Git
-- Use `FIREBASE_SETUP.md` for complete setup instructions
-- The `setup_firebase.sh` script helps create configuration files quickly
-
-**Before committing to GitHub:**
-1. Ensure your actual Firebase configuration files are not committed
-2. Only commit the template files and setup scripts
-3. The `.gitignore` file is configured to protect sensitive data
 
 ## 📷 **Screenshots**  
 
