@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart';
-import 'admin_login_page.dart'; // Ensure this is imported if you have an admin login page
+
 import 'admin_department_selection_page.dart'; // Ensure this is imported if you have an admin department selection page
 
 class WelcomePage extends StatelessWidget {
