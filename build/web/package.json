@@ -1,0 +1,13 @@
+{
+  "name": "jagrata-web",
+  "version": "1.0.0",
+  "description": "Jagrata Web App",
+  "dependencies": {
+    "firebase": "^11.0.0",
+    "@firebase/app": "^0.10.0",
+    "@firebase/auth": "^1.9.0",
+    "@firebase/firestore": "^4.7.0",
+    "@firebase/storage": "^0.13.0",
+    "@firebase/analytics": "^0.10.0"
+  }
+}
