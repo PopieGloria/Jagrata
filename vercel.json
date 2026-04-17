@@ -1,6 +1,7 @@
 {
   "version": 2,
-  "buildCommand": null,
+  "buildCommand": "./build.sh",
+  "installCommand": "echo 'Skipping install because build.sh does everything'",
   "outputDirectory": "build/web",
   "routes": [
     {
